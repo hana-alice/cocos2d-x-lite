@@ -361,10 +361,10 @@ void GLES3CommandBuffer::execute(const CommandBuffer *const *cmdBuffs, uint32_t 
 }
 
 void GLES3CommandBuffer::BindStates() {
-    GLES3CmdBindStates *cmd = _cmdAllocator->bindStatesCmdPool.alloc();
-    
     if (!_curGPUPipelineState)
         return;
+
+    GLES3CmdBindStates *cmd = _cmdAllocator->bindStatesCmdPool.alloc();
 
     cmd->gpuPipelineState = _curGPUPipelineState;
     cmd->gpuInputAssembler = _curGPUInputAssember;
