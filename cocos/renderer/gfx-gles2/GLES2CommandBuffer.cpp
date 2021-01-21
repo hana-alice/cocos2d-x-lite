@@ -355,13 +355,12 @@ void GLES2CommandBuffer::execute(const CommandBuffer *const *cmdBuffs, uint32_t 
 
 void GLES2CommandBuffer::BindStates() {
     GLES2CmdBindStates *cmd = _cmdAllocator->bindStatesCmdPool.alloc();
-    
+
     cmd->gpuPipelineState = _curGPUPipelineState;
     cmd->gpuInputAssembler = _curGPUInputAssember;
     cmd->gpuDescriptorSets = _curGPUDescriptorSets;
 
-    if (_curGPUPipelineState)
-    {
+    if (_curGPUPipelineState) {
         vector<uint> &dynamicOffsetOffsets = _curGPUPipelineState->gpuPipelineLayout->dynamicOffsetOffsets;
         cmd->dynamicOffsets.resize(_curGPUPipelineState->gpuPipelineLayout->dynamicOffsetCount);
         for (size_t i = 0u; i < _curDynamicOffsets.size(); i++) {

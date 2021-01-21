@@ -367,8 +367,7 @@ void GLES3CommandBuffer::BindStates() {
     cmd->gpuInputAssembler = _curGPUInputAssember;
     cmd->gpuDescriptorSets = _curGPUDescriptorSets;
 
-    if (_curGPUPipelineState)
-    {
+    if (_curGPUPipelineState) {
         vector<uint> &dynamicOffsetOffsets = _curGPUPipelineState->gpuPipelineLayout->dynamicOffsetOffsets;
         cmd->dynamicOffsets.resize(_curGPUPipelineState->gpuPipelineLayout->dynamicOffsetCount);
         for (size_t i = 0u; i < _curDynamicOffsets.size(); i++) {
