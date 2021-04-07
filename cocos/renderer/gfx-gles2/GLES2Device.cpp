@@ -74,16 +74,6 @@ bool GLES2Device::initialize(const DeviceInfo &info) {
     ctxInfo.windowHandle = _windowHandle;
     ctxInfo.sharedCtx = info.sharedCtx;
 
-    _renderContext = CC_NEW(GLES2Context(this));
-    if (!_renderContext->initialize(ctxInfo)) {
-        destroy();
-        return false;
-    }
-    bindRenderContext(true);
-
-    String extStr = (const char *)glGetString(GL_EXTENSIONS);
-    _extensions = StringUtil::Split(extStr, " ");
-
     if (checkExtension("GL_OES_texture_float")) {
         _features[(int)Feature::TEXTURE_FLOAT] = true;
     }
@@ -130,11 +120,6 @@ bool GLES2Device::initialize(const DeviceInfo &info) {
         compressedFmts += "etc1 ";
     }
 
-    if (checkForETC2()) {
-        _features[(int)Feature::FORMAT_ETC2] = true;
-        compressedFmts += "etc2 ";
-    }
-
     if (checkExtension("texture_compression_pvrtc")) {
         _features[(int)Feature::FORMAT_PVRTC] = true;
         compressedFmts += "pvrtc ";
@@ -154,6 +139,21 @@ bool GLES2Device::initialize(const DeviceInfo &info) {
         _features[static_cast<uint>(Feature::FORMAT_D16)] = true;
         _features[static_cast<uint>(Feature::FORMAT_D24)] = true;
         _features[static_cast<uint>(Feature::FORMAT_D24S8)] = checkExtension("packed_depth_stencil");
+    }
+
+    _renderContext = CC_NEW(GLES2Context(this));
+    if (!_renderContext->initialize(ctxInfo)) {
+        destroy();
+        return false;
+    }
+    bindRenderContext(true);
+
+    String extStr = (const char *)glGetString(GL_EXTENSIONS);
+    _extensions = StringUtil::Split(extStr, " ");
+
+    if (checkForETC2()) {
+        _features[(int)Feature::FORMAT_ETC2] = true;
+        compressedFmts += "etc2 ";
     }
 
     _renderer = (const char *)glGetString(GL_RENDERER);

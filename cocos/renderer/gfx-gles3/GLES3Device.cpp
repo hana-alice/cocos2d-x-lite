@@ -74,16 +74,6 @@ bool GLES3Device::initialize(const DeviceInfo &info) {
     ctxInfo.windowHandle = _windowHandle;
     ctxInfo.sharedCtx = info.sharedCtx;
 
-    _renderContext = CC_NEW(GLES3Context(this));
-    if (!_renderContext->initialize(ctxInfo)) {
-        destroy();
-        return false;
-    }
-    bindRenderContext(true);
-
-    String extStr = (const char *)glGetString(GL_EXTENSIONS);
-    _extensions = StringUtil::Split(extStr, " ");
-
     _features[(int)Feature::TEXTURE_FLOAT] = true;
     _features[(int)Feature::TEXTURE_HALF_FLOAT] = true;
     _features[(int)Feature::FORMAT_R11G11B10F] = true;
@@ -135,6 +125,16 @@ bool GLES3Device::initialize(const DeviceInfo &info) {
     _features[static_cast<uint>(Feature::FORMAT_D32F)] = true;
     _features[static_cast<uint>(Feature::FORMAT_D24S8)] = true;
     _features[static_cast<uint>(Feature::FORMAT_D32FS8)] = true;
+
+    _renderContext = CC_NEW(GLES3Context(this));
+    if (!_renderContext->initialize(ctxInfo)) {
+        destroy();
+        return false;
+    }
+    bindRenderContext(true);
+
+    String extStr = (const char *)glGetString(GL_EXTENSIONS);
+    _extensions = StringUtil::Split(extStr, " ");
 
     _renderer = (const char *)glGetString(GL_RENDERER);
     _vendor = (const char *)glGetString(GL_VENDOR);

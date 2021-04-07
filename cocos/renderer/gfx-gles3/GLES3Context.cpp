@@ -32,7 +32,7 @@ THE SOFTWARE.
     #include "cocos/bindings/event/EventDispatcher.h"
 #endif
 
-#define FORCE_DISABLE_VALIDATION  1
+#define FORCE_DISABLE_VALIDATION 1
 
 namespace cc {
 namespace gfx {
@@ -137,17 +137,105 @@ bool GLES3Context::initialize(const ContextInfo &info) {
         _colorFmt = Format::RGBA8;
         _depthStencilFmt = Format::D24S8;
 
-        const EGLint attribs[] = {
+        bool msaaEnabled = _device->hasFeature(Feature::MSAA);
+        EGLint redSize{8}, greenSize{8}, blueSize{8}, alphaSize{8}, depthSize{24}, stencilSize{8}, sampleBufferSize{msaaEnabled ? EGL_DONT_CARE : 0}, sampleSize{msaaEnabled ? EGL_DONT_CARE : 0};
+
+        // TODO: there are more options if not limit rgba to 8.
+        EGLint defaultAttribs[] = {
             EGL_SURFACE_TYPE, EGL_WINDOW_BIT | EGL_PBUFFER_BIT,
             EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
             // EGL_BUFFER_SIZE, colorBuffSize,
-            EGL_BLUE_SIZE, 8,
-            EGL_GREEN_SIZE, 8,
-            EGL_RED_SIZE, 8,
-            EGL_ALPHA_SIZE, 8,
-            EGL_DEPTH_SIZE, 24,
-            EGL_STENCIL_SIZE, 8,
+            EGL_BLUE_SIZE, blueSize,
+            EGL_GREEN_SIZE, greenSize,
+            EGL_RED_SIZE, redSize,
+            EGL_ALPHA_SIZE, alphaSize,
+            EGL_DEPTH_SIZE, depthSize,
+            EGL_STENCIL_SIZE, stencilSize,
+            EGL_SAMPLE_BUFFERS, sampleBufferSize,
+            EGL_SAMPLES, sampleSize,
             EGL_NONE};
+
+        int numConfig = 0;
+        if (eglChooseConfig(_eglDisplay, defaultAttribs, NULL, 0, &numConfig)) {
+            _eglConfigList = new EGLConfig[numConfig];
+        } else {
+            CC_LOG_ERROR("Query configuration failed.");
+            return false;
+        }
+
+        int count = numConfig;
+        if (eglChooseConfig(_eglDisplay, defaultAttribs, _eglConfigList, count, &numConfig) == EGL_FALSE || !numConfig) {
+            CC_LOG_ERROR("eglChooseConfig configuration failed.");
+            return false;
+        }
+
+        enum Performance {
+            HIGH_QUALITY,
+            LOW_POWER,
+            //BALANCE,
+        };
+
+        EGLint depth{0}, stencil{0}, sampleBuffers{0}, sampleCount{0};
+
+        // user defined, how muny attrs you want to filter by yourself.
+        const uint8_t attrNums = 8;
+        int64_t lastScore{0};
+        int params[attrNums] = {0};
+
+        const Performance performanceStrategy = Performance::LOW_POWER;
+        const bool performancePreferred = performanceStrategy == Performance::HIGH_QUALITY;
+        /* auto compare = performanceStrategy ==  Performance::HIGH_QUALITY ? (>) : (<) ;*/
+        // egl configurations store in "ascending order": https://www.khronos.org/registry/EGL/sdk/docs/man/html/eglChooseConfig.xhtml
+        // so equal applies to >(=)
+        std::function<bool(int, int)> compare;
+        if (performancePreferred) {
+            compare = [](int a, int b) { return a >= b; };
+        } else {
+            compare = [](int a, int b) { return a < b; };
+        }
+        // 10 step max, otherwise launch takes lots of time(black screen)
+        //float step = numConfig > 10 ? numConfig / 10.0 : 1.0;
+        for (int i = 0; i < numConfig; i++) {
+            int depthValue{0};
+            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_RED_SIZE, &params[0]);
+            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_GREEN_SIZE, &params[1]);
+            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_BLUE_SIZE, &params[2]);
+            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_ALPHA_SIZE, &params[3]);
+            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_DEPTH_SIZE, &params[4]);
+            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_STENCIL_SIZE, &params[5]);
+            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_SAMPLE_BUFFERS, &params[6]);
+            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_SAMPLES, &params[7]);
+            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_DEPTH_ENCODING_NV, &depthValue);
+
+            int bNonLinearDepth = (depthValue == EGL_DEPTH_ENCODING_NONLINEAR_NV) ? 1 : 0;
+
+            /*------------------------------------------ANGLE's priority-----------------------------------------------*/
+            // Favor EGLConfigLists by RGB, then Depth, then Non-linear Depth, then Stencil, then Alpha
+            int64_t currScore{0};
+            currScore |= ((int64_t)std::min(std::max(params[6], 0), 15)) << 29;
+            currScore |= ((int64_t)std::min(std::max(params[7], 0), 31)) << 24;
+            currScore |= std::min(std::abs(params[0] - redSize) +
+                                      std::abs(params[1] - greenSize) +
+                                      std::abs(params[2] - blueSize),
+                                  127)
+                         << 17;
+            currScore |= std::min(std::abs(params[4] - depthSize), 63) << 11;
+            currScore |= std::min(std::abs(1 - bNonLinearDepth), 1) << 10;
+            currScore |= std::min(std::abs(params[5] - stencilSize), 31) << 6;
+            currScore |= std::min(std::abs(params[3] - alphaSize), 31) << 0;
+            /*------------------------------------------ANGLE's priority-----------------------------------------------*/
+
+            // if msaaEnabled, sampleBuffers and sampleCount should be greater than 0, until iterate to the last one(can't find).
+            bool msaaLimit = msaaEnabled ? (params[6] > 0 && params[7] > 0) || (i == numConfig - 1) : (params[6] == 0 && params[7] == 0);
+            if ((compare(currScore, lastScore) || lastScore == 0) && msaaLimit) {
+                _eglConfig = _eglConfigList[i];
+                depth = params[4];
+                stencil = params[5];
+                sampleBuffers = params[6];
+                sampleCount = params[7];
+                lastScore = currScore;
+            }
+        }
 
         //    Find a suitable EGLConfig
         //    eglChooseConfig is provided by EGL to provide an easy way to select an appropriate configuration. It takes in the capabilities
@@ -158,15 +246,7 @@ bool GLES3Context::initialize(const ContextInfo &info) {
         //    advanced applications choose to do. For this application however, taking the first EGLConfig that the function returns suits
         //    its needs perfectly, so we limit it to returning a single EGLConfig.
 
-        EGLint numConfigs;
-        if (eglChooseConfig(_eglDisplay, attribs, &_eglConfig, 1, &numConfigs) == EGL_FALSE || numConfigs <= 0) {
-            CC_LOG_ERROR("Choosing configuration failed.");
-            return false;
-        }
-
-        EGLint depth = attribs[13];
-        EGLint stencil = attribs[15];
-        CC_LOG_INFO("Setup EGLConfig: depth [%d] stencil [%d]", depth, stencil);
+        CC_LOG_INFO("Setup EGLConfig: depth [%d] stencil [%d] sampleBuffer [%d] sampleCount [%d]", depth, stencil, sampleBuffers, sampleCount);
 
         if (depth == 16 && stencil == 0) {
             _depthStencilFmt = Format::D16;
@@ -347,6 +427,12 @@ bool GLES3Context::initialize(const ContextInfo &info) {
 
 void GLES3Context::destroy() {
     EGL_CHECK(eglMakeCurrent(_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+
+    //_eglConfig points to an element of _eglConfigList[]
+    if (_eglConfigList) {
+        delete[] _eglConfigList;
+        _eglConfigList = nullptr;
+    }
 
     if (_eglContext != EGL_NO_CONTEXT) {
         EGL_CHECK(eglDestroyContext(_eglDisplay, _eglContext));

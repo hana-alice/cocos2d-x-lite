@@ -107,6 +107,7 @@ private:
     EGLSurface _eglSurface = EGL_NO_SURFACE;
     EGLContext _eglContext = EGL_NO_CONTEXT;
     EGLContext _eglSharedContext = EGL_NO_CONTEXT;
+    EGLConfig *_eglConfigList = nullptr;
 #endif
     int _majorVersion = 0;
     int _minorVersion = 0;
