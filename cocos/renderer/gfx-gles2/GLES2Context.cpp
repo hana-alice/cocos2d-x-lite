@@ -148,7 +148,7 @@ bool GLES2Context::initialize(const ContextInfo &info) {
         // TODO: there are more options if not limit rgba to 8.
         EGLint defaultAttribs[] = {
             EGL_SURFACE_TYPE, EGL_WINDOW_BIT | EGL_PBUFFER_BIT,
-            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
+            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
             // EGL_BUFFER_SIZE, colorBuffSize,
             EGL_BLUE_SIZE, blueSize,
             EGL_GREEN_SIZE, greenSize,
