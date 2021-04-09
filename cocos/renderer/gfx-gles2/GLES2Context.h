@@ -82,7 +82,7 @@ public:
     CC_INLINE bool MakeCurrent() { return MakeCurrent(true); }
     CC_INLINE int major_ver() const { return _majorVersion; }
     CC_INLINE int minor_ver() const { return _minorVersion; }
-    CC_INLINE uint8_t multiSampleCount const { return _sampleCount; }
+    CC_INLINE uint8_t multiSampleCount() const { return _sampleCount; }
 
 private:
     bool MakeCurrentImpl(bool bound);
