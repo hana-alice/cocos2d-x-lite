@@ -89,7 +89,7 @@ bool GLES2Device::initialize(const DeviceInfo &info) {
     // features for UPPER LAYER
     _features[static_cast<int>(Feature::FORMAT_R11G11B10F)] = true;
     _features[static_cast<int>(Feature::FORMAT_D24S8)] = true;
-    _features[static_cast<int>(Feature::MSAA)] = true;
+    _features[static_cast<int>(Feature::MSAA)] = _renderContext->multiSampleCount() > 0;
     _features[static_cast<int>(Feature::DEPTH_BOUNDS)] = true;
     _features[static_cast<int>(Feature::LINE_WIDTH)] = true;
     _features[static_cast<int>(Feature::STENCIL_COMPARE_MASK)] = true;

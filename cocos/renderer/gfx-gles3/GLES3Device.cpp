@@ -90,7 +90,7 @@ bool GLES3Device::initialize(const DeviceInfo &info) {
     _features[static_cast<int>(Feature::TEXTURE_HALF_FLOAT)] = true;
     _features[static_cast<int>(Feature::FORMAT_R11G11B10F)] = true;
     _features[static_cast<int>(Feature::FORMAT_D24S8)] = true;
-    _features[static_cast<int>(Feature::MSAA)] = true;
+    _features[static_cast<int>(Feature::MSAA)] = _renderContext->multiSampleCount() > 0;
     _features[static_cast<int>(Feature::INSTANCED_ARRAYS)] = true;
     _features[static_cast<int>(Feature::MULTIPLE_RENDER_TARGETS)] = true;
     _features[static_cast<int>(Feature::BLEND_MINMAX)] = true;
