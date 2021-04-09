@@ -82,6 +82,7 @@ public:
     CC_INLINE bool MakeCurrent() { return MakeCurrent(true); }
     CC_INLINE int major_ver() const { return _majorVersion; }
     CC_INLINE int minor_ver() const { return _minorVersion; }
+    CC_INLINE uint8_t multiSampleCount() const { return _sampleCount; }
 
 private:
     bool MakeCurrentImpl(bool bound);
@@ -92,6 +93,9 @@ private:
 
 private:
     bool _isPrimaryContex = false;
+    bool _isInitialized = false;
+    uint8_t _sampleBuffers = 0;
+    uint8_t _sampleCount = 0;
 #if (CC_PLATFORM == CC_PLATFORM_MAC_IOS)
     intptr_t _eaglContext = 0;
     intptr_t _eaglSharedContext = 0;
@@ -106,12 +110,11 @@ private:
     EGLSurface _eglSurface = EGL_NO_SURFACE;
     EGLContext _eglContext = EGL_NO_CONTEXT;
     EGLContext _eglSharedContext = EGL_NO_CONTEXT;
-    EGLConfig* _eglConfigList = nullptr;
+    EGLConfig *_eglConfigList = nullptr;
 #endif
     int _majorVersion = 0;
     int _minorVersion = 0;
     StringArray _extensions;
-    bool _isInitialized = false;
 };
 
 } // namespace gfx

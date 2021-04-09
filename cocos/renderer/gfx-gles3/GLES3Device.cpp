@@ -73,58 +73,8 @@ bool GLES3Device::initialize(const DeviceInfo &info) {
     ContextInfo ctxInfo;
     ctxInfo.windowHandle = _windowHandle;
     ctxInfo.sharedCtx = info.sharedCtx;
-
-    _features[(int)Feature::TEXTURE_FLOAT] = true;
-    _features[(int)Feature::TEXTURE_HALF_FLOAT] = true;
-    _features[(int)Feature::FORMAT_R11G11B10F] = true;
-    _features[(int)Feature::FORMAT_D24S8] = true;
-    _features[(int)Feature::MSAA] = true;
-    _features[(int)Feature::INSTANCED_ARRAYS] = true;
-    _features[(int)Feature::MULTIPLE_RENDER_TARGETS] = true;
-    _features[(uint)Feature::BLEND_MINMAX] = true;
-    _features[(int)Feature::ELEMENT_INDEX_UINT] = true;
-
-    if (checkExtension("color_buffer_float"))
-        _features[(int)Feature::COLOR_FLOAT] = true;
-
-    if (checkExtension("color_buffer_half_float"))
-        _features[(int)Feature::COLOR_HALF_FLOAT] = true;
-
-    if (checkExtension("texture_float_linear"))
-        _features[(int)Feature::TEXTURE_FLOAT_LINEAR] = true;
-
-    if (checkExtension("texture_half_float_linear"))
-        _features[(int)Feature::TEXTURE_HALF_FLOAT_LINEAR] = true;
-
-    String compressedFmts;
-
-    if (checkExtension("compressed_ETC1")) {
-        _features[(int)Feature::FORMAT_ETC1] = true;
-        compressedFmts += "etc1 ";
-    }
-
-    _features[(int)Feature::FORMAT_ETC2] = true;
-    compressedFmts += "etc2 ";
-
-    if (checkExtension("texture_compression_pvrtc")) {
-        _features[(int)Feature::FORMAT_PVRTC] = true;
-        compressedFmts += "pvrtc ";
-    }
-
-    if (checkExtension("texture_compression_astc")) {
-        _features[(int)Feature::FORMAT_ASTC] = true;
-        compressedFmts += "astc ";
-    }
-    _features[static_cast<uint>(Feature::DEPTH_BOUNDS)] = true;
-    _features[static_cast<uint>(Feature::LINE_WIDTH)] = true;
-    _features[static_cast<uint>(Feature::STENCIL_COMPARE_MASK)] = true;
-    _features[static_cast<uint>(Feature::STENCIL_WRITE_MASK)] = true;
-    _features[static_cast<uint>(Feature::FORMAT_RGB8)] = true;
-    _features[static_cast<uint>(Feature::FORMAT_D16)] = true;
-    _features[static_cast<uint>(Feature::FORMAT_D24)] = true;
-    _features[static_cast<uint>(Feature::FORMAT_D32F)] = true;
-    _features[static_cast<uint>(Feature::FORMAT_D24S8)] = true;
-    _features[static_cast<uint>(Feature::FORMAT_D32FS8)] = true;
+    ctxInfo.msaaEnabled = info.isAntiAlias;
+    ctxInfo.performance = Performance::HIGH_QUALITY;
 
     _renderContext = CC_NEW(GLES3Context(this));
     if (!_renderContext->initialize(ctxInfo)) {
@@ -135,6 +85,58 @@ bool GLES3Device::initialize(const DeviceInfo &info) {
 
     String extStr = (const char *)glGetString(GL_EXTENSIONS);
     _extensions = StringUtil::Split(extStr, " ");
+
+    _features[static_cast<int>(Feature::TEXTURE_FLOAT)] = true;
+    _features[static_cast<int>(Feature::TEXTURE_HALF_FLOAT)] = true;
+    _features[static_cast<int>(Feature::FORMAT_R11G11B10F)] = true;
+    _features[static_cast<int>(Feature::FORMAT_D24S8)] = true;
+    _features[static_cast<int>(Feature::MSAA)] = true;
+    _features[static_cast<int>(Feature::INSTANCED_ARRAYS)] = true;
+    _features[static_cast<int>(Feature::MULTIPLE_RENDER_TARGETS)] = true;
+    _features[static_cast<int>(Feature::BLEND_MINMAX)] = true;
+    _features[static_cast<int>(Feature::ELEMENT_INDEX_UINT)] = true;
+    _features[static_cast<int>(Feature::DEPTH_BOUNDS)] = true;
+    _features[static_cast<int>(Feature::LINE_WIDTH)] = true;
+    _features[static_cast<int>(Feature::STENCIL_COMPARE_MASK)] = true;
+    _features[static_cast<int>(Feature::STENCIL_WRITE_MASK)] = true;
+    _features[static_cast<int>(Feature::FORMAT_RGB8)] = true;
+    _features[static_cast<int>(Feature::FORMAT_D16)] = true;
+    _features[static_cast<int>(Feature::FORMAT_D24)] = true;
+    _features[static_cast<int>(Feature::FORMAT_D32F)] = true;
+    _features[static_cast<int>(Feature::FORMAT_D24S8)] = true;
+    _features[static_cast<int>(Feature::FORMAT_D32FS8)] = true;
+
+    if (checkExtension("color_buffer_float"))
+        _features[static_cast<int>(Feature::COLOR_FLOAT)] = true;
+
+    if (checkExtension("color_buffer_half_float"))
+        _features[static_cast<int>(Feature::COLOR_HALF_FLOAT)] = true;
+
+    if (checkExtension("texture_float_linear"))
+        _features[static_cast<int>(Feature::TEXTURE_FLOAT_LINEAR)] = true;
+
+    if (checkExtension("texture_half_float_linear"))
+        _features[static_cast<int>(Feature::TEXTURE_HALF_FLOAT_LINEAR)] = true;
+
+    String compressedFmts;
+
+    if (checkExtension("compressed_ETC1")) {
+        _features[static_cast<int>(Feature::FORMAT_ETC1)] = true;
+        compressedFmts += "etc1 ";
+    }
+
+    _features[static_cast<int>(Feature::FORMAT_ETC2)] = true;
+    compressedFmts += "etc2 ";
+
+    if (checkExtension("texture_compression_pvrtc")) {
+        _features[static_cast<int>(Feature::FORMAT_PVRTC)] = true;
+        compressedFmts += "pvrtc ";
+    }
+
+    if (checkExtension("texture_compression_astc")) {
+        _features[static_cast<int>(Feature::FORMAT_ASTC)] = true;
+        compressedFmts += "astc ";
+    }
 
     _renderer = (const char *)glGetString(GL_RENDERER);
     _vendor = (const char *)glGetString(GL_VENDOR);

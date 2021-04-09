@@ -713,6 +713,7 @@ struct BindingMappingInfo {
 };
 
 struct DeviceInfo {
+    bool isAntiAlias = false;
     uintptr_t windowHandle = 0;
     uint width = 0;
     uint height = 0;
@@ -737,10 +738,18 @@ struct WindowInfo {
     RenderPass *renderPass = nullptr;
 };
 
+enum class Performance {
+    HIGH_QUALITY,
+    LOW_POWER,
+    //BALANCE,
+};
+
 struct ContextInfo {
+    bool msaaEnabled = false;
+    Performance performance = Performance::LOW_POWER;
+    VsyncMode vsyncMode = VsyncMode::RELAXED;
     uintptr_t windowHandle = 0;
     Context *sharedCtx = nullptr;
-    VsyncMode vsyncMode = VsyncMode::RELAXED;
 };
 
 struct BufferInfo {

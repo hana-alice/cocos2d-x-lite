@@ -73,73 +73,8 @@ bool GLES2Device::initialize(const DeviceInfo &info) {
     ContextInfo ctxInfo;
     ctxInfo.windowHandle = _windowHandle;
     ctxInfo.sharedCtx = info.sharedCtx;
-
-    if (checkExtension("GL_OES_texture_float")) {
-        _features[(int)Feature::TEXTURE_FLOAT] = true;
-    }
-
-    if (checkExtension("GL_OES_texture_half_float")) {
-        _features[(int)Feature::TEXTURE_HALF_FLOAT] = true;
-    }
-
-    _features[(int)Feature::FORMAT_R11G11B10F] = true;
-    _features[(int)Feature::FORMAT_D24S8] = true;
-    _features[(int)Feature::MSAA] = true;
-
-    if (checkExtension("GL_OES_element_index_uint")) {
-        _features[(int)Feature::ELEMENT_INDEX_UINT] = true;
-    }
-
-    if (checkExtension("color_buffer_float"))
-        _features[(int)Feature::COLOR_FLOAT] = true;
-
-    if (checkExtension("color_buffer_half_float"))
-        _features[(int)Feature::COLOR_HALF_FLOAT] = true;
-
-    if (checkExtension("texture_float_linear"))
-        _features[(int)Feature::TEXTURE_FLOAT_LINEAR] = true;
-
-    if (checkExtension("texture_half_float_linear"))
-        _features[(int)Feature::TEXTURE_HALF_FLOAT_LINEAR] = true;
-
-    if (checkExtension("draw_buffers"))
-        _features[(int)Feature::MULTIPLE_RENDER_TARGETS] = true;
-
-    if (checkExtension("blend_minmax"))
-        _features[(int)Feature::BLEND_MINMAX] = true;
-
-    _useVAO = checkExtension("vertex_array_object");
-    _useDrawInstanced = checkExtension("draw_instanced");
-    _useInstancedArrays = _features[(int)Feature::INSTANCED_ARRAYS] = checkExtension("instanced_arrays");
-    _useDiscardFramebuffer = checkExtension("discard_framebuffer");
-
-    String compressedFmts;
-
-    if (checkExtension("compressed_ETC1")) {
-        _features[(int)Feature::FORMAT_ETC1] = true;
-        compressedFmts += "etc1 ";
-    }
-
-    if (checkExtension("texture_compression_pvrtc")) {
-        _features[(int)Feature::FORMAT_PVRTC] = true;
-        compressedFmts += "pvrtc ";
-    }
-
-    if (checkExtension("texture_compression_astc")) {
-        _features[(int)Feature::FORMAT_ASTC] = true;
-        compressedFmts += "astc ";
-    }
-    _features[static_cast<uint>(Feature::DEPTH_BOUNDS)] = true;
-    _features[static_cast<uint>(Feature::LINE_WIDTH)] = true;
-    _features[static_cast<uint>(Feature::STENCIL_COMPARE_MASK)] = true;
-    _features[static_cast<uint>(Feature::STENCIL_WRITE_MASK)] = true;
-    _features[static_cast<uint>(Feature::FORMAT_RGB8)] = true;
-
-    if (checkExtension("depth_texture")) {
-        _features[static_cast<uint>(Feature::FORMAT_D16)] = true;
-        _features[static_cast<uint>(Feature::FORMAT_D24)] = true;
-        _features[static_cast<uint>(Feature::FORMAT_D24S8)] = checkExtension("packed_depth_stencil");
-    }
+    ctxInfo.msaaEnabled = info.isAntiAlias;
+    ctxInfo.performance = Performance::HIGH_QUALITY;
 
     _renderContext = CC_NEW(GLES2Context(this));
     if (!_renderContext->initialize(ctxInfo)) {
@@ -151,10 +86,78 @@ bool GLES2Device::initialize(const DeviceInfo &info) {
     String extStr = (const char *)glGetString(GL_EXTENSIONS);
     _extensions = StringUtil::Split(extStr, " ");
 
+    // features for UPPER LAYER
+    _features[static_cast<int>(Feature::FORMAT_R11G11B10F)] = true;
+    _features[static_cast<int>(Feature::FORMAT_D24S8)] = true;
+    _features[static_cast<int>(Feature::MSAA)] = true;
+    _features[static_cast<int>(Feature::DEPTH_BOUNDS)] = true;
+    _features[static_cast<int>(Feature::LINE_WIDTH)] = true;
+    _features[static_cast<int>(Feature::STENCIL_COMPARE_MASK)] = true;
+    _features[static_cast<int>(Feature::STENCIL_WRITE_MASK)] = true;
+    _features[static_cast<int>(Feature::FORMAT_RGB8)] = true;
+
+    _useVAO = checkExtension("vertex_array_object");
+    _useDrawInstanced = checkExtension("draw_instanced");
+    _useInstancedArrays = _features[static_cast<int>(Feature::INSTANCED_ARRAYS)] = checkExtension("instanced_arrays");
+    _useDiscardFramebuffer = checkExtension("discard_framebuffer");
+
+    if (checkExtension("GL_OES_texture_float")) {
+        _features[static_cast<int>(Feature::TEXTURE_FLOAT)] = true;
+    }
+
+    if (checkExtension("GL_OES_texture_half_float")) {
+        _features[static_cast<int>(Feature::TEXTURE_HALF_FLOAT)] = true;
+    }
+
+    String compressedFmts;
+
+    if (checkExtension("compressed_ETC1")) {
+        _features[static_cast<int>(Feature::FORMAT_ETC1)] = true;
+        compressedFmts += "etc1 ";
+    }
+
+    if (checkExtension("texture_compression_pvrtc")) {
+        _features[static_cast<int>(Feature::FORMAT_PVRTC)] = true;
+        compressedFmts += "pvrtc ";
+    }
+
+    if (checkExtension("texture_compression_astc")) {
+        _features[static_cast<int>(Feature::FORMAT_ASTC)] = true;
+        compressedFmts += "astc ";
+    }
+
     if (checkForETC2()) {
-        _features[(int)Feature::FORMAT_ETC2] = true;
+        _features[static_cast<int>(Feature::FORMAT_ETC2)] = true;
         compressedFmts += "etc2 ";
     }
+
+    if (checkExtension("depth_texture")) {
+        _features[static_cast<uint>(Feature::FORMAT_D16)] = true;
+        _features[static_cast<uint>(Feature::FORMAT_D24)] = true;
+        _features[static_cast<uint>(Feature::FORMAT_D24S8)] = checkExtension("packed_depth_stencil");
+    }
+
+    if (checkExtension("GL_OES_element_index_uint")) {
+        _features[static_cast<int>(Feature::ELEMENT_INDEX_UINT)] = true;
+    }
+
+    if (checkExtension("color_buffer_float"))
+        _features[static_cast<int>(Feature::COLOR_FLOAT)] = true;
+
+    if (checkExtension("color_buffer_half_float"))
+        _features[static_cast<int>(Feature::COLOR_HALF_FLOAT)] = true;
+
+    if (checkExtension("texture_float_linear"))
+        _features[static_cast<int>(Feature::TEXTURE_FLOAT_LINEAR)] = true;
+
+    if (checkExtension("texture_half_float_linear"))
+        _features[static_cast<int>(Feature::TEXTURE_HALF_FLOAT_LINEAR)] = true;
+
+    if (checkExtension("draw_buffers"))
+        _features[static_cast<int>(Feature::MULTIPLE_RENDER_TARGETS)] = true;
+
+    if (checkExtension("blend_minmax"))
+        _features[static_cast<int>(Feature::BLEND_MINMAX)] = true;
 
     _renderer = (const char *)glGetString(GL_RENDERER);
     _vendor = (const char *)glGetString(GL_VENDOR);

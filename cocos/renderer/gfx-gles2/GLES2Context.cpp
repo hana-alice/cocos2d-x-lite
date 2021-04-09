@@ -142,10 +142,9 @@ bool GLES2Context::initialize(const ContextInfo &info) {
         _colorFmt = Format::RGBA8;
         _depthStencilFmt = Format::D24S8;
 
-        bool msaaEnabled = _device->hasFeature(Feature::MSAA);
+        bool msaaEnabled = info.msaaEnabled;
         EGLint redSize{8}, greenSize{8}, blueSize{8}, alphaSize{8}, depthSize{24}, stencilSize{8}, sampleBufferSize{msaaEnabled ? EGL_DONT_CARE : 0}, sampleSize{msaaEnabled ? EGL_DONT_CARE : 0};
 
-        // TODO: there are more options if not limit rgba to 8.
         EGLint defaultAttribs[] = {
             EGL_SURFACE_TYPE, EGL_WINDOW_BIT | EGL_PBUFFER_BIT,
             EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
@@ -174,32 +173,13 @@ bool GLES2Context::initialize(const ContextInfo &info) {
             return false;
         }
 
-        enum Performance {
-            HIGH_QUALITY,
-            LOW_POWER,
-            //BALANCE,
-        };
+        EGLint depth{0}, stencil{0};
 
-        EGLint depth{0}, stencil{0}, sampleBuffers{0}, sampleCount{0};
-
-        // user defined, how muny attrs you want to filter by yourself.
         const uint8_t attrNums = 8;
-        int64_t lastScore{0};
+        uint64_t lastScore{0};
         int params[attrNums] = {0};
 
-        const Performance performanceStrategy = Performance::HIGH_QUALITY;
-        const bool performancePreferred = performanceStrategy == Performance::HIGH_QUALITY;
-        /* auto compare = performanceStrategy ==  Performance::HIGH_QUALITY ? (>) : (<) ;*/
-        // egl configurations store in "ascending order": https://www.khronos.org/registry/EGL/sdk/docs/man/html/eglChooseConfig.xhtml
-        // so equal applies to >(=)
-        std::function<bool(int, int)> compare;
-        if (performancePreferred) {
-            compare = [](int a, int b) { return a >= b; };
-        } else {
-            compare = [](int a, int b) { return a < b; };
-        }
-        // 10 step max, otherwise launch takes lots of time(black screen)
-        //float step = numConfig > 10 ? numConfig / 10.0 : 1.0;
+        const bool performancePreferred = info.performance == Performance::HIGH_QUALITY;
         for (int i = 0; i < numConfig; i++) {
             int depthValue{0};
             eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_RED_SIZE, &params[0]);
@@ -216,9 +196,9 @@ bool GLES2Context::initialize(const ContextInfo &info) {
 
             /*------------------------------------------ANGLE's priority-----------------------------------------------*/
             // Favor EGLConfigLists by RGB, then Depth, then Non-linear Depth, then Stencil, then Alpha
-            int64_t currScore{0};
-            currScore |= ((int64_t)std::min(std::max(params[6], 0), 15)) << 29;
-            currScore |= ((int64_t)std::min(std::max(params[7], 0), 31)) << 24;
+            uint64_t currScore{0};
+            currScore |= ((uint64_t)std::min(std::max(params[6], 0), 15)) << 29;
+            currScore |= ((uint64_t)std::min(std::max(params[7], 0), 31)) << 24;
             currScore |= std::min(std::abs(params[0] - redSize) +
                                       std::abs(params[1] - greenSize) +
                                       std::abs(params[2] - blueSize),
@@ -232,12 +212,14 @@ bool GLES2Context::initialize(const ContextInfo &info) {
 
             // if msaaEnabled, sampleBuffers and sampleCount should be greater than 0, until iterate to the last one(can't find).
             bool msaaLimit = msaaEnabled ? (params[6] > 0 && params[7] > 0) || (i == numConfig - 1) : (params[6] == 0 && params[7] == 0);
-            if ((compare(currScore, lastScore) || lastScore == 0) && msaaLimit) {
+            // performancePreferred ? [>=] : [<] , egl configurations store in "ascending order"
+            bool filter = (currScore < lastScore) ^ performancePreferred;
+            if ((filter || lastScore == 0) && msaaLimit) {
                 _eglConfig = _eglConfigList[i];
                 depth = params[4];
                 stencil = params[5];
-                sampleBuffers = params[6];
-                sampleCount = params[7];
+                _sampleBuffers = params[6];
+                _sampleCount = params[7];
                 lastScore = currScore;
             }
         }
@@ -251,7 +233,7 @@ bool GLES2Context::initialize(const ContextInfo &info) {
         //    advanced applications choose to do. For this application however, taking the first EGLConfig that the function returns suits
         //    its needs perfectly, so we limit it to returning a single EGLConfig.
 
-        CC_LOG_INFO("Setup EGLConfig: depth [%d] stencil [%d] sampleBuffer [%d] sampleCount [%d]", depth, stencil, sampleBuffers, sampleCount);
+        CC_LOG_INFO("Setup EGLConfig: depth [%d] stencil [%d] sampleBuffer [%d] sampleCount [%d]", depth, stencil, _sampleBuffers, _sampleCount);
 
         if (depth == 16 && stencil == 0) {
             _depthStencilFmt = Format::D16;
