@@ -32,7 +32,7 @@ THE SOFTWARE.
     #include "cocos/bindings/event/EventDispatcher.h"
 #endif
 
-#define FORCE_DISABLE_VALIDATION 1
+#define FORCE_DISABLE_VALIDATION 0
 
 namespace cc {
 namespace gfx {
@@ -485,8 +485,12 @@ bool GLES2Context::MakeCurrent(bool bound) {
 
 #if CC_DEBUG > 0 && !FORCE_DISABLE_VALIDATION && CC_PLATFORM != CC_PLATFORM_MAC_IOS
             GL_CHECK(glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_KHR));
-            GL_CHECK(glDebugMessageControlKHR(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE));
-            GL_CHECK(glDebugMessageCallbackKHR(GLES2EGLDebugProc, NULL));
+            if (glDebugMessageControlKHR) {
+                GL_CHECK(glDebugMessageControlKHR(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE));
+            }
+            if (glDebugMessageCallbackKHR) {
+                GL_CHECK(glDebugMessageCallbackKHR(GLES2EGLDebugProc, NULL));
+            }
 #endif
 
             _isInitialized = true;
