@@ -32,6 +32,7 @@ THE SOFTWARE.
     #include <EGL/egl.h>
     #include <EGL/eglext.h>
     #include <EGL/eglplatform.h>
+    #include <vector>
 #endif
 
 #ifndef EGL_KHR_create_context
@@ -110,7 +111,7 @@ private:
     EGLSurface _eglSurface = EGL_NO_SURFACE;
     EGLContext _eglContext = EGL_NO_CONTEXT;
     EGLContext _eglSharedContext = EGL_NO_CONTEXT;
-    EGLConfig *_eglConfigList = nullptr;
+    std::vector<EGLConfig> _vecEGLConfig;
 #endif
     int _majorVersion = 0;
     int _minorVersion = 0;

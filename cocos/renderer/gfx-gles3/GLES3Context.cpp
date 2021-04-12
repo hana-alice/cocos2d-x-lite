@@ -156,14 +156,14 @@ bool GLES3Context::initialize(const ContextInfo &info) {
 
         int numConfig = 0;
         if (eglChooseConfig(_eglDisplay, defaultAttribs, NULL, 0, &numConfig)) {
-            _eglConfigList = new EGLConfig[numConfig];
+            _vecEGLConfig.resize(numConfig);
         } else {
             CC_LOG_ERROR("Query configuration failed.");
             return false;
         }
 
         int count = numConfig;
-        if (eglChooseConfig(_eglDisplay, defaultAttribs, _eglConfigList, count, &numConfig) == EGL_FALSE || !numConfig) {
+        if (eglChooseConfig(_eglDisplay, defaultAttribs, _vecEGLConfig.data(), count, &numConfig) == EGL_FALSE || !numConfig) {
             CC_LOG_ERROR("eglChooseConfig configuration failed.");
             return false;
         }
@@ -177,15 +177,15 @@ bool GLES3Context::initialize(const ContextInfo &info) {
         const bool performancePreferred = info.performance == Performance::HIGH_QUALITY;
         for (int i = 0; i < numConfig; i++) {
             int depthValue{0};
-            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_RED_SIZE, &params[0]);
-            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_GREEN_SIZE, &params[1]);
-            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_BLUE_SIZE, &params[2]);
-            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_ALPHA_SIZE, &params[3]);
-            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_DEPTH_SIZE, &params[4]);
-            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_STENCIL_SIZE, &params[5]);
-            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_SAMPLE_BUFFERS, &params[6]);
-            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_SAMPLES, &params[7]);
-            eglGetConfigAttrib(_eglDisplay, _eglConfigList[i], EGL_DEPTH_ENCODING_NV, &depthValue);
+            eglGetConfigAttrib(_eglDisplay, _vecEGLConfig[i], EGL_RED_SIZE, &params[0]);
+            eglGetConfigAttrib(_eglDisplay, _vecEGLConfig[i], EGL_GREEN_SIZE, &params[1]);
+            eglGetConfigAttrib(_eglDisplay, _vecEGLConfig[i], EGL_BLUE_SIZE, &params[2]);
+            eglGetConfigAttrib(_eglDisplay, _vecEGLConfig[i], EGL_ALPHA_SIZE, &params[3]);
+            eglGetConfigAttrib(_eglDisplay, _vecEGLConfig[i], EGL_DEPTH_SIZE, &params[4]);
+            eglGetConfigAttrib(_eglDisplay, _vecEGLConfig[i], EGL_STENCIL_SIZE, &params[5]);
+            eglGetConfigAttrib(_eglDisplay, _vecEGLConfig[i], EGL_SAMPLE_BUFFERS, &params[6]);
+            eglGetConfigAttrib(_eglDisplay, _vecEGLConfig[i], EGL_SAMPLES, &params[7]);
+            eglGetConfigAttrib(_eglDisplay, _vecEGLConfig[i], EGL_DEPTH_ENCODING_NV, &depthValue);
 
             int bNonLinearDepth = (depthValue == EGL_DEPTH_ENCODING_NONLINEAR_NV) ? 1 : 0;
 
@@ -210,7 +210,7 @@ bool GLES3Context::initialize(const ContextInfo &info) {
             // performancePreferred ? [>=] : [<] , egl configurations store in "ascending order"
             bool filter = (currScore < lastScore) ^ performancePreferred;
             if ((filter || lastScore == 0) && msaaLimit) {
-                _eglConfig = _eglConfigList[i];
+                _eglConfig = _vecEGLConfig[i];
                 depth = params[4];
                 stencil = params[5];
                 _sampleBuffers = params[6];
@@ -410,10 +410,8 @@ bool GLES3Context::initialize(const ContextInfo &info) {
 void GLES3Context::destroy() {
     EGL_CHECK(eglMakeCurrent(_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
 
-    //_eglConfig points to an element of _eglConfigList[]
-    if (_eglConfigList) {
-        delete[] _eglConfigList;
-        _eglConfigList = nullptr;
+    if (!_vecEGLConfig.empty()) {
+        _vecEGLConfig.clear();
     }
 
     if (_eglContext != EGL_NO_CONTEXT) {
