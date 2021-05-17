@@ -13,6 +13,8 @@ set(PROJ_SOURCES)
 set(PROJ_COMMON_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/Game.h
     ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/Game.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/GameAgent.h
+    ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/GameAgent.cpp
 )
 
 if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/jsb_module_register.cpp)

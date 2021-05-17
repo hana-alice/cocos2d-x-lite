@@ -23,24 +23,26 @@
  THE SOFTWARE.
  ****************************************************************************/
 #pragma once
-
-#include "platform/Application.h"
 /**
  @brief    The cocos2d Application.
  
  The reason for implement as private inheritance is to hide some interface call by Director.
  */
-class GameAgent;
-class Game : public cc::Application {
+class GameAgent{
+    
+friend class Game;
+
 public:
     /**
      * width and height in logical pixel unit
      */
-    Game(int width, int height);
-    virtual bool init() override;
-    virtual void onPause() override;
-    virtual void onResume() override;
-    virtual void tick() override;
+    static GameAgent* getInstance();
+    
+    virtual bool init();
+    virtual void onPause();
+    virtual void onResume();
+    virtual void tick(long long deltaTime);
 private:
-    GameAgent* _agent = nullptr;;
+    GameAgent();
+    static GameAgent* _instance;
 };

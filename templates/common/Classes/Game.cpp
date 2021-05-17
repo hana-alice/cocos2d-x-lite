@@ -29,12 +29,17 @@
 #include "cocos/bindings/manual/jsb_classtype.h"
 #include "cocos/bindings/manual/jsb_global.h"
 #include "cocos/bindings/manual/jsb_module_register.h"
+#include "GameAgent.h"
 
 namespace {
 se::ValueArray _CMIDataCmds;
 }
 
-Game::Game(int width, int height) : cc::Application(width, height) {}
+Game::Game(int width, int height) : cc::Application(width, height) {
+    if(!_agent) {
+        _agent = new GameAgent();
+    }
+}
 
 bool Game::init() {
     cc::Application::init();
@@ -66,7 +71,7 @@ bool Game::init() {
         JSBClassType::destroy();
     });
 
-    return true;
+    return _agent->init();
 }
 
 void Game::onPause() {
@@ -76,6 +81,7 @@ void Game::onPause() {
     event.name = EVENT_COME_TO_BACKGROUND;
     cc::EventDispatcher::dispatchCustomEvent(event);
     cc::EventDispatcher::dispatchEnterBackgroundEvent();
+    _agent->onPause();
 }
 
 void Game::onResume() {
@@ -85,6 +91,7 @@ void Game::onResume() {
     event.name = EVENT_COME_TO_FOREGROUND;
     cc::EventDispatcher::dispatchCustomEvent(event);
     cc::EventDispatcher::dispatchEnterForegroundEvent();
+    _agent->onResume();
 }
 
 void Game::tick() {
@@ -95,4 +102,8 @@ void Game::tick() {
     if (cmds.isUndefined()) {
         se::ScriptEngine::getInstance()->getGlobalObject()->getProperty("_CMIDataCmds", &_CMIDataCmds);
     }
+    static std::chrono::steady_clock::time_point prevTime = std::chrono::steady_clock::now();
+
+    long long milliSeconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - prevTime).count();
+    _agent->tick(milliSeconds);
 }

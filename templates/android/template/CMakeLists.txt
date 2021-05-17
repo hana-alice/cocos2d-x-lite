@@ -11,6 +11,8 @@ set(LIB_NAME cocos)
 set(PROJ_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/Game.h
     ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/Game.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/GameAgent.h
+    ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/GameAgent.cpp
     ${CMAKE_CURRENT_LIST_DIR}/jni/main.cpp
 )
 
