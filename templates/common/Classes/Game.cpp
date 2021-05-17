@@ -31,13 +31,9 @@
 #include "cocos/bindings/manual/jsb_module_register.h"
 #include "GameAgent.h"
 
-namespace {
-se::ValueArray _CMIDataCmds;
-}
-
 Game::Game(int width, int height) : cc::Application(width, height) {
     if(!_agent) {
-        _agent = new GameAgent();
+        _agent = new cc::GameAgent();
     }
 }
 
@@ -97,13 +93,10 @@ void Game::onResume() {
 void Game::tick() {
     cc::Application::tick();
 
-    se::ValueArray cmds;
-    se::Value cmd;
-    if (cmds.isUndefined()) {
-        se::ScriptEngine::getInstance()->getGlobalObject()->getProperty("_CMIDataCmds", &_CMIDataCmds);
-    }
     static std::chrono::steady_clock::time_point prevTime = std::chrono::steady_clock::now();
-
+    auto curTime = std::chrono::steady_clock::now().time_since_epoch();
+    _timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(curTime).count();
+    _agent->_timeStamp = _timeStamp;
     long long milliSeconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - prevTime).count();
     _agent->tick(milliSeconds);
 }

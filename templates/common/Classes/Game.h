@@ -30,7 +30,10 @@
  
  The reason for implement as private inheritance is to hide some interface call by Director.
  */
-class GameAgent;
+namespace cc {
+    class GameAgent;
+}
+
 class Game : public cc::Application {
 public:
     /**
@@ -42,5 +45,6 @@ public:
     virtual void onResume() override;
     virtual void tick() override;
 private:
-    GameAgent* _agent = nullptr;;
+    cc::GameAgent* _agent = nullptr;
+    uint64_t _timeStamp = 0;
 };

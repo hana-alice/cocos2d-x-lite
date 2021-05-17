@@ -28,21 +28,43 @@
  
  The reason for implement as private inheritance is to hide some interface call by Director.
  */
-class GameAgent{
-    
-friend class Game;
+#include "math/Vec3.h"
 
-public:
-    /**
-     * width and height in logical pixel unit
-     */
-    static GameAgent* getInstance();
-    
-    virtual bool init();
-    virtual void onPause();
-    virtual void onResume();
-    virtual void tick(long long deltaTime);
-private:
-    GameAgent();
-    static GameAgent* _instance;
-};
+namespace cc {
+
+    enum class ModelType : UINT32 {
+        MAINCAR,
+        CAR,
+        HUMAN,
+        BYCYCLE,
+        TRUCK,
+        COUNT // COUNT
+    };
+
+    class GameAgent {
+
+        friend class Game;
+
+    public:
+        /**
+         * width and height in logical pixel unit
+         */
+        static GameAgent* getInstance();
+
+        virtual bool init();
+        virtual void onPause();
+        virtual void onResume();
+        virtual void tick(long long deltaTime);
+
+        virtual void createModel(uint32_t modelID, ModelType type, Vec3 position, Vec3 eulerAngle);
+        virtual void removeModel(uint32_t modelID);
+        virtual void updateModel(uint32_t modelID, Vec3 position, Vec3 eulerAngle, float speed);
+
+        virtual void enable(uint32_t modelID);
+        virtual void disable(uint32_t modelID);
+    private:
+        GameAgent();
+        static GameAgent* _instance;
+        uint64_t _timeStamp = 0;
+    };
+}
