@@ -24,15 +24,15 @@ THE SOFTWARE.
 ****************************************************************************/
 #pragma once
 
-#include <string>
-#include <memory>
-#include <thread> // // std::this_thread::sleep_for
 #include "base/Macros.h"
+#include <memory>
+#include <string>
+#include <thread> // // std::this_thread::sleep_for
 
-#include "bindings/event/EventDispatcher.h"
-#include "base/Scheduler.h"
 #include "base/AutoreleasePool.h"
+#include "base/Scheduler.h"
 #include "base/TypeDef.h"
+#include "bindings/event/EventDispatcher.h"
 #include "math/Vec2.h"
 
 #define NANOSECONDS_PER_SECOND 1000000000
@@ -92,7 +92,7 @@ public:
 
     void restart() { _needRestart = true; }
 
-    void tick();
+    virtual void tick();
 
     void restartVM();
 
