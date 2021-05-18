@@ -46,7 +46,7 @@ bool GameAgent::tick(long long deltaT) {
             for (size_t i = 0; i < recordCmds.size(); i++) {
                 const uint propSize = (uint32_t)cc::CMIDATATYPE::COUNT;
                 auto cfg = se::Object::createArrayObject(propSize);
-                const CMIData& cmd = recordCmds[i];
+                const CMIData &cmd = recordCmds[i];
 
                 cfg->setArrayElement(0, se::Value((uint32_t)cmd.action));
                 cfg->setArrayElement(1, se::Value((uint32_t)cmd.type));
@@ -106,7 +106,7 @@ void GameAgent::removeModel(uint32_t modelID) {
         it->action = CMIACTION::REMOVE;
     } else {
         recordCmds.push_back({CMIACTION::REMOVE,
-                              ModelType::COUNT,
+                              ModelType::CAR,
                               0,
                               modelID,
                               _timeStamp,
@@ -124,7 +124,7 @@ void GameAgent::updateModel(uint32_t modelID, Vec3 position, Vec3 eulerAngle, fl
         it->action = CMIACTION::UPDATE;
     }
     recordCmds.push_back({CMIACTION::UPDATE,
-                          ModelType::COUNT,
+                          ModelType::CAR,
                           speed,
                           modelID,
                           _timeStamp,
