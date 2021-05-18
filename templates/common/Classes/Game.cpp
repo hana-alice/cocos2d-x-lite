@@ -24,12 +24,6 @@
  ****************************************************************************/
 #include "Game.h"
 #include "GameAgent.h"
-#include "cocos/bindings/event/CustomEventTypes.h"
-#include "cocos/bindings/event/EventDispatcher.h"
-#include "cocos/bindings/jswrapper/SeApi.h"
-#include "cocos/bindings/manual/jsb_classtype.h"
-#include "cocos/bindings/manual/jsb_global.h"
-#include "cocos/bindings/manual/jsb_module_register.h"
 
 #include "ExampleCase.h"
 
@@ -52,62 +46,23 @@ Game::~Game() {
 bool Game::init() {
     cc::Application::init();
 
-    se::ScriptEngine *se = se::ScriptEngine::getInstance();
-
-    jsb_set_xxtea_key("");
-    jsb_init_file_operation_delegate();
-
-#if defined(CC_DEBUG) && (CC_DEBUG > 0)
-    // Enable debugger here
-    jsb_enable_debugger("0.0.0.0", 6086, false);
-#endif
-
-    se->setExceptionCallback([](const char *location, const char *message, const char *stack) {
-        // Send exception information to server like Tencent Bugly.
-        CC_LOG_ERROR("\nUncaught Exception:\n - location :  %s\n - msg : %s\n - detail : \n      %s\n", location, message, stack);
-    });
-
-    jsb_register_all_modules();
-
-    se->start();
-
-    se::AutoHandleScope hs;
-    jsb_run_script("jsb-adapter/jsb-builtin.js");
-    jsb_run_script("main.js");
-
-    se->addAfterCleanupHook([]() {
-        JSBClassType::destroy();
-    });
-
     return _agent->init();
 }
 
 void Game::onPause() {
     cc::Application::onPause();
 
-    cc::CustomEvent event;
-    event.name = EVENT_COME_TO_BACKGROUND;
-    cc::EventDispatcher::dispatchCustomEvent(event);
-    cc::EventDispatcher::dispatchEnterBackgroundEvent();
+    _agent->onPause();
 }
 
 void Game::onResume() {
     cc::Application::onResume();
 
-    cc::CustomEvent event;
-    event.name = EVENT_COME_TO_FOREGROUND;
-    cc::EventDispatcher::dispatchCustomEvent(event);
-    cc::EventDispatcher::dispatchEnterForegroundEvent();
+    _agent->onResume();
 }
 
 void Game::tick() {
     cc::Application::tick();
-    static std::chrono::steady_clock::time_point prevTime = std::chrono::steady_clock::now();
-    auto curTime = std::chrono::steady_clock::now().time_since_epoch();
-    _timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(curTime).count();
-    _agent->_timeStamp = _timeStamp;
-    long long milliSeconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - prevTime).count();
-    _agent->tick(milliSeconds);
-
+    _agent->tick();
     egCase.update();
 }

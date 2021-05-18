@@ -1,6 +1,12 @@
 #include "GameAgent.h"
 #include "base/TypeDef.h"
+#include "cocos/bindings/event/CustomEventTypes.h"
+#include "cocos/bindings/event/EventDispatcher.h"
 #include "cocos/bindings/jswrapper/SeApi.h"
+#include "cocos/bindings/manual/jsb_classtype.h"
+#include "cocos/bindings/manual/jsb_global.h"
+#include "cocos/bindings/manual/jsb_module_register.h"
+
 namespace cc {
 GameAgent *GameAgent::_instance = nullptr;
 namespace {
@@ -22,10 +28,52 @@ GameAgent *GameAgent::getInstance() {
 }
 
 bool GameAgent::init() {
+    se::ScriptEngine* se = se::ScriptEngine::getInstance();
+
+    jsb_set_xxtea_key("");
+    jsb_init_file_operation_delegate();
+
+#if defined(CC_DEBUG) && (CC_DEBUG > 0)
+    // Enable debugger here
+    jsb_enable_debugger("0.0.0.0", 6086, false);
+#endif
+
+    se->setExceptionCallback([](const char* location, const char* message, const char* stack) {
+        // Send exception information to server like Tencent Bugly.
+        CC_LOG_ERROR("\nUncaught Exception:\n - location :  %s\n - msg : %s\n - detail : \n      %s\n", location, message, stack);
+        });
+
+    jsb_register_all_modules();
+
+    se->start();
+
+    se::AutoHandleScope hs;
+    jsb_run_script("jsb-adapter/jsb-builtin.js");
+    jsb_run_script("main.js");
+
+    se->addAfterCleanupHook([]() {
+        JSBClassType::destroy();
+        });
     return true;
 }
 
-bool GameAgent::tick(long long deltaT) {
+void GameAgent::onPause()
+{
+    cc::CustomEvent event;
+    event.name = EVENT_COME_TO_BACKGROUND;
+    cc::EventDispatcher::dispatchCustomEvent(event);
+    cc::EventDispatcher::dispatchEnterBackgroundEvent();
+}
+
+void GameAgent::onResume()
+{
+    cc::CustomEvent event;
+    event.name = EVENT_COME_TO_FOREGROUND;
+    cc::EventDispatcher::dispatchCustomEvent(event);
+    cc::EventDispatcher::dispatchEnterForegroundEvent();
+}
+
+void GameAgent::tick() {
 
     se::AutoHandleScope scp;
 
@@ -72,12 +120,10 @@ bool GameAgent::tick(long long deltaT) {
             globalJSThis->setProperty("_CMIDataCmds", _CMIDataCmds);
         }
     }
-
-    return true;
 }
 
 void GameAgent::createModel(uint32_t modelID, ModelType type, Vec3 position, Vec3 eulerAngle) {
-    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
+/*    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
         return modelID == data.modelID && data.action != CMIACTION::REMOVE;
     });
 
@@ -86,7 +132,7 @@ void GameAgent::createModel(uint32_t modelID, ModelType type, Vec3 position, Vec
         it->type = type;
         it->position = position;
         it->eulerAngle = eulerAngle;
-    } else {
+    } else */{
         recordCmds.push_back({CMIACTION::CREATE,
                               type,
                               0,
@@ -97,14 +143,14 @@ void GameAgent::createModel(uint32_t modelID, ModelType type, Vec3 position, Vec
     }
 }
 
-void GameAgent::removeModel(uint32_t modelID) {
-    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
+void GameAgent::removeModel(uint32_t modelID, ModelType type) {
+/*    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
         return modelID == data.modelID && data.action != CMIACTION::REMOVE;
     });
 
     if (it != recordCmds.end()) {
         it->action = CMIACTION::REMOVE;
-    } else {
+    } else*/ {
         recordCmds.push_back({CMIACTION::REMOVE,
                               ModelType::CAR,
                               0,
@@ -115,14 +161,16 @@ void GameAgent::removeModel(uint32_t modelID) {
     }
 }
 
-void GameAgent::updateModel(uint32_t modelID, Vec3 position, Vec3 eulerAngle, float speed) {
-    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
-        return modelID == data.modelID && data.action != CMIACTION::REMOVE;
-    });
+void GameAgent::updateModel(uint32_t modelID, ModelType type, Vec3 position, Vec3 eulerAngle, float speed) {
+    //auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
+    //    return modelID == data.modelID && data.action != CMIACTION::REMOVE;
+    //});
+    //
+    //if (it == recordCmds.end())
+    //    return;
 
-    if (it != recordCmds.end()) {
-        it->action = CMIACTION::UPDATE;
-    }
+    // for Example Presentation TS update every second, merge update when frame driven.
+    // this is friednly to increase frame rate.
     recordCmds.push_back({CMIACTION::UPDATE,
                           ModelType::CAR,
                           speed,
@@ -136,6 +184,14 @@ void GameAgent::enable(uint32_t modelID) {
 }
 
 void GameAgent::disable(uint32_t modelID) {
+}
+
+void GameAgent::animationOn(uint32_t modelID)
+{
+}
+
+void GameAgent::animationOff(uint32_t modelID)
+{
 }
 
 } // namespace cc

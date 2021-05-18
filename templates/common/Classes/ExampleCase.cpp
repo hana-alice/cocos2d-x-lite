@@ -1,16 +1,19 @@
-#include "ExampleCase.h"
-#include "json/document.h"
-#include "json/rapidjson.h"
-
 #include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <sstream>
+#include <unordered_map>
+
+#include "ExampleCase.h"
+#include "json/document.h"
+#include "json/rapidjson.h"
+#include "ccdef.h"
+#include "Model.h"
 
 using namespace rapidjson;
 using namespace cc;
 void ExampleCase::init() {
-    std::ifstream ifs("E:\\tmp\\auto-drive\\auto-drive\\native\\engine\\common\\Classes\\transfer.json");
+    std::ifstream ifs("D:\\dev\\project\\auto-drive111\\auto-drive\\native\\engine\\common\\Classes\\transfer.json");
     std::string content((std::istreambuf_iterator<char>(ifs)),
                         (std::istreambuf_iterator<char>()));
     Document document;
@@ -88,25 +91,38 @@ void ExampleCase::update() {
     auto curTime = std::chrono::steady_clock::now();
     long long secs = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - prevTime).count();
 
+    static std::unordered_map<uint32_t, Model> modelMap;
+
     GameAgent *agent = GameAgent::getInstance();
     for (int i = 0; i < _simulateDatas.size(); i++) {
         if (secs == _simulateDatas[i].timeStamp) {
+            
             const CMIData &data = _simulateDatas[i];
-            switch (data.action) {
-                case CMIACTION::CREATE:
-                    agent->createModel(data.modelID, data.type, data.position, data.eulerAngle);
-                    break;
-                case CMIACTION::UPDATE:
-                    agent->updateModel(data.modelID, data.position, data.eulerAngle, data.speed);
-                    break;
-                case CMIACTION::REMOVE:
-                    agent->removeModel(data.modelID);
-                    break;
-                default:
-                    break;
+            if (data.action == CMIACTION::CREATE) {
+                Model model;
+                model.init(data.modelID, data.type);
+                model.create(data.position, data.eulerAngle);
+                modelMap.insert({ data.modelID, model});
+            } else {
+                auto iter = std::find_if(modelMap.begin(), modelMap.end(), [data](std::unordered_map<uint32_t, Model>::value_type val) {
+                    return val.second.getData().modelID == data.modelID;
+                });
+                if (iter != modelMap.end()) {
+                    switch (data.action) {
+                    case CMIACTION::UPDATE:
+                        iter->second.update(data.position, data.eulerAngle, data.speed);
+                        break;
+                    case CMIACTION::REMOVE:
+                    {
+                        iter->second.remove();
+                        modelMap.erase(iter);
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+                }
             }
-        } else if (secs < _simulateDatas[i].timeStamp) {
-            break;
         }
     }
 }
