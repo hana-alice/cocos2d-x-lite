@@ -23,17 +23,29 @@
  THE SOFTWARE.
  ****************************************************************************/
 #include "Game.h"
+#include "GameAgent.h"
 #include "cocos/bindings/event/CustomEventTypes.h"
 #include "cocos/bindings/event/EventDispatcher.h"
 #include "cocos/bindings/jswrapper/SeApi.h"
 #include "cocos/bindings/manual/jsb_classtype.h"
 #include "cocos/bindings/manual/jsb_global.h"
 #include "cocos/bindings/manual/jsb_module_register.h"
-#include "GameAgent.h"
+
+#include "ExampleCase.h"
+
+ExampleCase egCase;
 
 Game::Game(int width, int height) : cc::Application(width, height) {
-    if(!_agent) {
+    if (!_agent) {
         _agent = new cc::GameAgent();
+    }
+    egCase.init();
+}
+
+Game::~Game() {
+    if (_agent) {
+        delete _agent;
+        _agent = nullptr;
     }
 }
 
@@ -77,7 +89,6 @@ void Game::onPause() {
     event.name = EVENT_COME_TO_BACKGROUND;
     cc::EventDispatcher::dispatchCustomEvent(event);
     cc::EventDispatcher::dispatchEnterBackgroundEvent();
-    _agent->onPause();
 }
 
 void Game::onResume() {
@@ -87,16 +98,16 @@ void Game::onResume() {
     event.name = EVENT_COME_TO_FOREGROUND;
     cc::EventDispatcher::dispatchCustomEvent(event);
     cc::EventDispatcher::dispatchEnterForegroundEvent();
-    _agent->onResume();
 }
 
 void Game::tick() {
     cc::Application::tick();
-
     static std::chrono::steady_clock::time_point prevTime = std::chrono::steady_clock::now();
     auto curTime = std::chrono::steady_clock::now().time_since_epoch();
     _timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(curTime).count();
     _agent->_timeStamp = _timeStamp;
     long long milliSeconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - prevTime).count();
     _agent->tick(milliSeconds);
+
+    egCase.update();
 }

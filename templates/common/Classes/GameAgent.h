@@ -29,42 +29,35 @@
  The reason for implement as private inheritance is to hide some interface call by Director.
  */
 #include "math/Vec3.h"
+#include "ccdef.h"
 
 namespace cc {
 
-    enum class ModelType : UINT32 {
-        MAINCAR,
-        CAR,
-        HUMAN,
-        BYCYCLE,
-        TRUCK,
-        COUNT // COUNT
-    };
+typedef bool (*OnTickCallbackFunc)(long long deltaTime);
+class GameAgent {
 
-    class GameAgent {
+    friend class Game;
 
-        friend class Game;
+public:
+    static GameAgent *getInstance();
 
-    public:
-        /**
-         * width and height in logical pixel unit
-         */
-        static GameAgent* getInstance();
+    bool init();
 
-        virtual bool init();
-        virtual void onPause();
-        virtual void onResume();
-        virtual void tick(long long deltaTime);
+    void createModel(uint32_t modelID, ModelType type, Vec3 position, Vec3 eulerAngle);
+    void removeModel(uint32_t modelID);
+    void updateModel(uint32_t modelID, Vec3 position, Vec3 eulerAngle, float speed);
 
-        virtual void createModel(uint32_t modelID, ModelType type, Vec3 position, Vec3 eulerAngle);
-        virtual void removeModel(uint32_t modelID);
-        virtual void updateModel(uint32_t modelID, Vec3 position, Vec3 eulerAngle, float speed);
+    void enable(uint32_t modelID);
+    void disable(uint32_t modelID);
 
-        virtual void enable(uint32_t modelID);
-        virtual void disable(uint32_t modelID);
-    private:
-        GameAgent();
-        static GameAgent* _instance;
-        uint64_t _timeStamp = 0;
-    };
-}
+    void animationOn(uint32_t modelID);
+    void animationOff(uint32_t modelID);
+
+private:
+    bool tick(long long deltaTime);
+    GameAgent();
+    static GameAgent *_instance;
+    uint64_t _timeStamp = 0;
+    OnTickCallbackFunc _cb = nullptr;
+};
+} // namespace cc
