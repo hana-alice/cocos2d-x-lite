@@ -1,4 +1,5 @@
 #include "GameAgent.h"
+#include "Game.h"
 #include "base/TypeDef.h"
 #include "cocos/bindings/event/CustomEventTypes.h"
 #include "cocos/bindings/event/EventDispatcher.h"
@@ -6,7 +7,6 @@
 #include "cocos/bindings/manual/jsb_classtype.h"
 #include "cocos/bindings/manual/jsb_global.h"
 #include "cocos/bindings/manual/jsb_module_register.h"
-#include "Game.h"
 namespace cc {
 GameAgent *GameAgent::_instance = nullptr;
 namespace {
@@ -19,7 +19,7 @@ se::Object *jsonConfigs = nullptr;
 std::vector<CMIData> recordCmds;
 ;
 
-GameAgent::GameAgent(Game* gameHandler) {
+GameAgent::GameAgent(Game *gameHandler) {
     _gameHadler = gameHandler;
     _instance = this;
 }
@@ -31,7 +31,7 @@ GameAgent *GameAgent::getInstance() {
 bool GameAgent::init() {
     _gameHadler->Application::init();
 
-    se::ScriptEngine* se = se::ScriptEngine::getInstance();
+    se::ScriptEngine *se = se::ScriptEngine::getInstance();
 
     jsb_set_xxtea_key("");
     jsb_init_file_operation_delegate();
@@ -41,10 +41,10 @@ bool GameAgent::init() {
     jsb_enable_debugger("0.0.0.0", 6086, false);
 #endif
 
-    se->setExceptionCallback([](const char* location, const char* message, const char* stack) {
+    se->setExceptionCallback([](const char *location, const char *message, const char *stack) {
         // Send exception information to server like Tencent Bugly.
         CC_LOG_ERROR("\nUncaught Exception:\n - location :  %s\n - msg : %s\n - detail : \n      %s\n", location, message, stack);
-        });
+    });
 
     jsb_register_all_modules();
 
@@ -56,12 +56,11 @@ bool GameAgent::init() {
 
     se->addAfterCleanupHook([]() {
         JSBClassType::destroy();
-        });
+    });
     return true;
 }
 
-void GameAgent::onPause()
-{
+void GameAgent::onPause() {
     _gameHadler->Application::onPause();
     cc::CustomEvent event;
     event.name = EVENT_COME_TO_BACKGROUND;
@@ -69,8 +68,7 @@ void GameAgent::onPause()
     cc::EventDispatcher::dispatchEnterBackgroundEvent();
 }
 
-void GameAgent::onResume()
-{
+void GameAgent::onResume() {
     _gameHadler->Application::onResume();
     cc::CustomEvent event;
     event.name = EVENT_COME_TO_FOREGROUND;
@@ -100,7 +98,6 @@ void GameAgent::tick() {
                 const uint propSize = (uint32_t)cc::CMIDATATYPE::COUNT;
                 auto cfg = se::Object::createArrayObject(propSize);
                 const CMIData &cmd = recordCmds[i];
-
                 cfg->setArrayElement(0, se::Value((uint32_t)cmd.action));
                 cfg->setArrayElement(1, se::Value((int32_t)cmd.type));
                 cfg->setArrayElement(2, se::Value((float)cmd.speed));
@@ -128,7 +125,7 @@ void GameAgent::tick() {
 }
 
 void GameAgent::createModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec3 eulerAngle) {
-/*    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
+    /*    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
         return modelID == data.modelID && data.action != CMIACTION::REMOVE;
     });
 
@@ -137,7 +134,8 @@ void GameAgent::createModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec
         it->type = type;
         it->position = position;
         it->eulerAngle = eulerAngle;
-    } else */{
+    } else */
+    {
         recordCmds.push_back({CMIACTION::CREATE,
                               type,
                               0,
@@ -149,13 +147,14 @@ void GameAgent::createModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec
 }
 
 void GameAgent::removeModel(uint32_t modelID, MODELTYPE type) {
-/*    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
+    /*    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
         return modelID == data.modelID && data.action != CMIACTION::REMOVE;
     });
 
     if (it != recordCmds.end()) {
         it->action = CMIACTION::REMOVE;
-    } else*/ {
+    } else*/
+    {
         recordCmds.push_back({CMIACTION::REMOVE,
                               type,
                               0,
@@ -167,13 +166,6 @@ void GameAgent::removeModel(uint32_t modelID, MODELTYPE type) {
 }
 
 void GameAgent::updateModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec3 eulerAngle, float speed) {
-    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
-        return modelID == data.modelID && data.action != CMIACTION::REMOVE;
-    });
-    
-    if (it == recordCmds.end())
-        return;
-
     // for Example Presentation TS update every second, merge update when frame driven.
     // this is friednly to increase frame rate.
     recordCmds.push_back({CMIACTION::UPDATE,
@@ -191,12 +183,10 @@ void GameAgent::enable(uint32_t modelID) {
 void GameAgent::disable(uint32_t modelID) {
 }
 
-void GameAgent::animationOn(uint32_t modelID)
-{
+void GameAgent::animationOn(uint32_t modelID) {
 }
 
-void GameAgent::animationOff(uint32_t modelID)
-{
+void GameAgent::animationOff(uint32_t modelID) {
 }
 
 } // namespace cc

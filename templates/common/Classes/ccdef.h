@@ -21,7 +21,7 @@ struct CMIData {
     MODELTYPE type;
     float speed;
     uint32_t modelID;
-    uint64_t timeStamp;
+    uint32_t timeStamp;
     cc::Vec3 position;
     cc::Vec3 eulerAngle;
 };

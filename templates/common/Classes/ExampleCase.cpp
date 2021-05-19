@@ -4,9 +4,10 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "ExampleCase.h"
 #include "Actor.h"
+#include "ExampleCase.h"
 #include "ccdef.h"
+#include "cocos/base/Log.h"
 #include "json/document.h"
 #include "json/rapidjson.h"
 
@@ -35,7 +36,7 @@ void ExampleCase::init() {
         if (strcmp(singlePack["action"].GetString(), "createModel") == 0) {
             int32_t modelType = atoi(singlePack["modelType"].GetString());
             uint32_t modelID = std::hash<std::string>{}(singlePack["modelID"].GetString());
-            uint64_t timeStamp = atoi(singlePack["timestamp"].GetString());
+            uint32_t timeStamp = atoi(singlePack["timestamp"].GetString());
             float posX = atof(singlePack["positionX"].GetString());
             float posY = atof(singlePack["positionY"].GetString());
             float posZ = atof(singlePack["positionZ"].GetString());
@@ -52,7 +53,7 @@ void ExampleCase::init() {
         } else if (strcmp(singlePack["action"].GetString(), "updateModel") == 0) {
             //uint32_t modelType = atoi(singlePack["modelType"].GetString());
             uint32_t modelID = std::hash<std::string>{}(singlePack["modelID"].GetString());
-            uint64_t timeStamp = atoi(singlePack["timestamp"].GetString());
+            uint32_t timeStamp = atoi(singlePack["timestamp"].GetString());
             float posX = atof(singlePack["positionX"].GetString());
             float posY = atof(singlePack["positionY"].GetString());
             float posZ = atof(singlePack["positionZ"].GetString());
@@ -70,7 +71,7 @@ void ExampleCase::init() {
         } else if (strcmp(singlePack["action"].GetString(), "removeModel") == 0) {
             //uint32_t modelType = atoi(singlePack["modelType"].GetString());
             uint32_t modelID = std::hash<std::string>{}(singlePack["modelID"].GetString());
-            uint64_t timeStamp = atoi(singlePack["timestamp"].GetString());
+            uint32_t timeStamp = atoi(singlePack["timestamp"].GetString());
             _simulateDatas.push_back({CMIACTION::REMOVE,
                                       MODELTYPE::CAR,
                                       0.0f,
@@ -86,17 +87,28 @@ void ExampleCase::init() {
 }
 
 void ExampleCase::update() {
-    static std::chrono::steady_clock::time_point prevTime = std::chrono::steady_clock::now();
+    static std::chrono::steady_clock::time_point firstFrame = std::chrono::steady_clock::now();
+    static std::chrono::steady_clock::time_point prevTime = firstFrame;
     auto curTime = std::chrono::steady_clock::now();
-    long long secs = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - prevTime).count();
+    long long secs = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - firstFrame).count();
+
+    static uint32_t delta = 0;
+    delta += std::chrono::duration_cast<std::chrono::milliseconds>(curTime - prevTime).count();
+    prevTime = curTime;
+
+    if (delta < 200) {
+        return;
+    } else {
+        delta -= 200;
+    }
 
     static std::unordered_map<uint32_t, Actor> actorMap;
 
     GameAgent *agent = GameAgent::getInstance();
     for (int i = 0; i < _simulateDatas.size(); i++) {
         if (secs - 3 == _simulateDatas[i].timeStamp) {
-
             const CMIData &data = _simulateDatas[i];
+
             if (data.action == CMIACTION::CREATE) {
                 Actor actor;
                 actor.init(data.modelID, data.type);
@@ -111,7 +123,6 @@ void ExampleCase::update() {
                             break;
                         case CMIACTION::REMOVE: {
                             iter->second.remove();
-                            actorMap.erase(iter);
                             break;
                         }
                         default:

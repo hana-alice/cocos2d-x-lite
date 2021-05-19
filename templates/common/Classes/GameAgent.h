@@ -64,7 +64,7 @@ private:
     
 
     static GameAgent *_instance;
-    uint64_t _timeStamp = 0;
+    uint32_t _timeStamp = 0;
     Game* _gameHadler = nullptr;
 };
 } // namespace cc
