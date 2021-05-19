@@ -6,7 +6,7 @@
 #include "cocos/bindings/manual/jsb_classtype.h"
 #include "cocos/bindings/manual/jsb_global.h"
 #include "cocos/bindings/manual/jsb_module_register.h"
-
+#include "Game.h"
 namespace cc {
 GameAgent *GameAgent::_instance = nullptr;
 namespace {
@@ -19,7 +19,8 @@ se::Object *jsonConfigs = nullptr;
 std::vector<CMIData> recordCmds;
 ;
 
-GameAgent::GameAgent() {
+GameAgent::GameAgent(Game* gameHandler) {
+    _gameHadler = gameHandler;
     _instance = this;
 }
 
@@ -28,6 +29,8 @@ GameAgent *GameAgent::getInstance() {
 }
 
 bool GameAgent::init() {
+    _gameHadler->Application::init();
+
     se::ScriptEngine* se = se::ScriptEngine::getInstance();
 
     jsb_set_xxtea_key("");
@@ -59,6 +62,7 @@ bool GameAgent::init() {
 
 void GameAgent::onPause()
 {
+    _gameHadler->Application::onPause();
     cc::CustomEvent event;
     event.name = EVENT_COME_TO_BACKGROUND;
     cc::EventDispatcher::dispatchCustomEvent(event);
@@ -67,6 +71,7 @@ void GameAgent::onPause()
 
 void GameAgent::onResume()
 {
+    _gameHadler->Application::onResume();
     cc::CustomEvent event;
     event.name = EVENT_COME_TO_FOREGROUND;
     cc::EventDispatcher::dispatchCustomEvent(event);
@@ -74,7 +79,7 @@ void GameAgent::onResume()
 }
 
 void GameAgent::tick() {
-
+    _gameHadler->Application::tick();
     se::AutoHandleScope scp;
 
     if (!jsonConfigs) {
@@ -97,7 +102,7 @@ void GameAgent::tick() {
                 const CMIData &cmd = recordCmds[i];
 
                 cfg->setArrayElement(0, se::Value((uint32_t)cmd.action));
-                cfg->setArrayElement(1, se::Value((uint32_t)cmd.type));
+                cfg->setArrayElement(1, se::Value((int32_t)cmd.type));
                 cfg->setArrayElement(2, se::Value((float)cmd.speed));
                 cfg->setArrayElement(3, se::Value((uint32_t)cmd.modelID));
                 cfg->setArrayElement(4, se::Value((uint32_t)cmd.timeStamp));
@@ -122,7 +127,7 @@ void GameAgent::tick() {
     }
 }
 
-void GameAgent::createModel(uint32_t modelID, ModelType type, Vec3 position, Vec3 eulerAngle) {
+void GameAgent::createModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec3 eulerAngle) {
 /*    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
         return modelID == data.modelID && data.action != CMIACTION::REMOVE;
     });
@@ -143,7 +148,7 @@ void GameAgent::createModel(uint32_t modelID, ModelType type, Vec3 position, Vec
     }
 }
 
-void GameAgent::removeModel(uint32_t modelID, ModelType type) {
+void GameAgent::removeModel(uint32_t modelID, MODELTYPE type) {
 /*    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
         return modelID == data.modelID && data.action != CMIACTION::REMOVE;
     });
@@ -161,7 +166,7 @@ void GameAgent::removeModel(uint32_t modelID, ModelType type) {
     }
 }
 
-void GameAgent::updateModel(uint32_t modelID, ModelType type, Vec3 position, Vec3 eulerAngle, float speed) {
+void GameAgent::updateModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec3 eulerAngle, float speed) {
     auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
         return modelID == data.modelID && data.action != CMIACTION::REMOVE;
     });

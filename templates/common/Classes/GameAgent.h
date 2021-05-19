@@ -31,6 +31,7 @@
 #include "math/Vec3.h"
 #include "ccdef.h"
 
+class Game;
 namespace cc {
 
 typedef bool (*OnTickCallbackFunc)(long long deltaTime);
@@ -44,9 +45,9 @@ public:
     bool init();
     
 
-    void createModel(uint32_t modelID, ModelType type, Vec3 position, Vec3 eulerAngle);
-    void removeModel(uint32_t modelID, ModelType type);
-    void updateModel(uint32_t modelID, ModelType type, Vec3 position, Vec3 eulerAngle, float speed);
+    void createModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec3 eulerAngle);
+    void removeModel(uint32_t modelID, MODELTYPE type);
+    void updateModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec3 eulerAngle, float speed);
 
     void enable(uint32_t modelID);
     void disable(uint32_t modelID);
@@ -55,12 +56,15 @@ public:
     void animationOff(uint32_t modelID);
 
 private:
+    GameAgent(Game* gameHandler);
+
     void onPause();
     void onResume();
     void tick();
-    GameAgent();
+    
+
     static GameAgent *_instance;
     uint64_t _timeStamp = 0;
-    OnTickCallbackFunc _cb = nullptr;
+    Game* _gameHadler = nullptr;
 };
 } // namespace cc

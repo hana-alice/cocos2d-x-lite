@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 #include "ExampleCase.h"
-#include "Model.h"
+#include "Actor.h"
 #include "ccdef.h"
 #include "json/document.h"
 #include "json/rapidjson.h"
@@ -33,7 +33,7 @@ void ExampleCase::init() {
         const auto &singlePack = data[i];
         const auto str = singlePack["action"].GetString();
         if (strcmp(singlePack["action"].GetString(), "createModel") == 0) {
-            uint32_t modelType = atoi(singlePack["modelType"].GetString());
+            int32_t modelType = atoi(singlePack["modelType"].GetString());
             uint32_t modelID = std::hash<std::string>{}(singlePack["modelID"].GetString());
             uint64_t timeStamp = atoi(singlePack["timestamp"].GetString());
             float posX = atof(singlePack["positionX"].GetString());
@@ -43,7 +43,7 @@ void ExampleCase::init() {
             float eulerY = atof(singlePack["eulerY"].GetString());
             float eulerZ = atof(singlePack["eulerZ"].GetString());
             _simulateDatas.push_back({CMIACTION::CREATE,
-                                      (ModelType)modelType,
+                                      (MODELTYPE)modelType,
                                       0,
                                       modelID,
                                       timeStamp,
@@ -61,7 +61,7 @@ void ExampleCase::init() {
             float eulerZ = atof(singlePack["eulerZ"].GetString());
             float speed = atof(singlePack["speed"].GetString());
             _simulateDatas.push_back({CMIACTION::UPDATE,
-                                      ModelType::CAR, // wahtever
+                                      MODELTYPE::CAR, // wahtever
                                       speed,
                                       modelID,
                                       timeStamp,
@@ -72,7 +72,7 @@ void ExampleCase::init() {
             uint32_t modelID = std::hash<std::string>{}(singlePack["modelID"].GetString());
             uint64_t timeStamp = atoi(singlePack["timestamp"].GetString());
             _simulateDatas.push_back({CMIACTION::REMOVE,
-                                      ModelType::CAR,
+                                      MODELTYPE::CAR,
                                       0.0f,
                                       modelID,
                                       timeStamp,
@@ -90,7 +90,7 @@ void ExampleCase::update() {
     auto curTime = std::chrono::steady_clock::now();
     long long secs = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - prevTime).count();
 
-    static std::unordered_map<uint32_t, Model> modelMap;
+    static std::unordered_map<uint32_t, Actor> actorMap;
 
     GameAgent *agent = GameAgent::getInstance();
     for (int i = 0; i < _simulateDatas.size(); i++) {
@@ -98,20 +98,20 @@ void ExampleCase::update() {
 
             const CMIData &data = _simulateDatas[i];
             if (data.action == CMIACTION::CREATE) {
-                Model model;
-                model.init(data.modelID, data.type);
-                model.create(data.position, data.eulerAngle);
-                modelMap.insert({data.modelID, model});
+                Actor actor;
+                actor.init(data.modelID, data.type);
+                actor.create(data.position, data.eulerAngle);
+                actorMap.insert({data.modelID, actor});
             } else {
-                auto iter = modelMap.find(data.modelID);
-                if (iter != modelMap.end()) {
+                auto iter = actorMap.find(data.modelID);
+                if (iter != actorMap.end()) {
                     switch (data.action) {
                         case CMIACTION::UPDATE:
                             iter->second.update(data.position, data.eulerAngle, data.speed);
                             break;
                         case CMIACTION::REMOVE: {
                             iter->second.remove();
-                            modelMap.erase(iter);
+                            actorMap.erase(iter);
                             break;
                         }
                         default:

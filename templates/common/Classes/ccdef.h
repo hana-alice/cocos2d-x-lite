@@ -2,7 +2,7 @@
 #include "math/Vec3.h"
 namespace cc {
 
-enum ModelType : INT32 {
+enum class MODELTYPE : INT32 {
     MAINCAR = -1,
     CAR = 0,
     HUMAN,
@@ -18,7 +18,7 @@ enum class CMIACTION : uint32_t {
 
 struct CMIData {
     CMIACTION action;
-    ModelType type;
+    MODELTYPE type;
     float speed;
     uint32_t modelID;
     uint64_t timeStamp;

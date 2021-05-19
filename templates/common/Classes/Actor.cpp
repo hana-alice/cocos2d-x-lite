@@ -1,26 +1,26 @@
-#include "Model.h"
+#include "Actor.h"
 #include "GameAgent.h"
 using namespace cc;
-bool Model::init(uint32_t modelID, ModelType type)
+bool Actor::init(uint32_t modelID, MODELTYPE type)
 {
 	_data.modelID = modelID;
 	_data.type = type;
 	return true;
 }
 
-void Model::create(Vec3 position, Vec3 eulerAngle)
+void Actor::create(Vec3 position, Vec3 eulerAngle)
 {
 	_data.position = position;
 	_data.eulerAngle = eulerAngle;
 	GameAgent::getInstance()->createModel(_data.modelID, _data.type, position, eulerAngle);
 }
 
-void Model::remove()
+void Actor::remove()
 {
 	GameAgent::getInstance()->removeModel(_data.modelID, _data.type);
 }
 
-void Model::update(Vec3 position, Vec3 eulerAngle, float speed)
+void Actor::update(Vec3 position, Vec3 eulerAngle, float speed)
 {
 	_data.position = position;
 	_data.eulerAngle = eulerAngle;
@@ -28,22 +28,22 @@ void Model::update(Vec3 position, Vec3 eulerAngle, float speed)
 	GameAgent::getInstance()->updateModel(_data.modelID, _data.type, position, eulerAngle, speed);
 }
 
-void Model::enable()
+void Actor::enable()
 {
 	GameAgent::getInstance()->enable(_data.modelID);
 }
 
-void Model::disable()
+void Actor::disable()
 {
 	GameAgent::getInstance()->disable(_data.modelID);
 }
 
-void Model::animationOn()
+void Actor::animationOn()
 {
 	GameAgent::getInstance()->animationOn(_data.modelID);
 }
 
-void Model::animationOff()
+void Actor::animationOff()
 {
 	GameAgent::getInstance()->animationOff(_data.modelID);
 }

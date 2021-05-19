@@ -31,8 +31,9 @@ ExampleCase egCase;
 
 Game::Game(int width, int height) : cc::Application(width, height) {
     if (!_agent) {
-        _agent = new cc::GameAgent();
+        _agent = new cc::GameAgent(this);
     }
+
     egCase.init();
 }
 
@@ -44,25 +45,19 @@ Game::~Game() {
 }
 
 bool Game::init() {
-    cc::Application::init();
-
     return _agent->init();
 }
 
 void Game::onPause() {
-    cc::Application::onPause();
-
     _agent->onPause();
 }
 
 void Game::onResume() {
-    cc::Application::onResume();
-
     _agent->onResume();
 }
 
 void Game::tick() {
-    cc::Application::tick();
     _agent->tick();
+
     egCase.update();
 }

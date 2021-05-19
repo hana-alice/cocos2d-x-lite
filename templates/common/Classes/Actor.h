@@ -1,10 +1,10 @@
 #pragma once
 #include "math/Vec3.h"
 #include "ccdef.h"
-class Model
+class Actor
 {
 public:
-    bool init(uint32_t modelID, cc::ModelType type);
+    bool init(uint32_t modelID, cc::MODELTYPE type);
 
     void create(cc::Vec3 position, cc::Vec3 eulerAngle);
     void remove();
