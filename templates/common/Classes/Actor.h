@@ -4,7 +4,7 @@
 class Actor
 {
 public:
-    bool init(uint32_t modelID, cc::MODELTYPE type);
+    bool init(uint32_t modelID, cc::MODELTYPE modelType, cc::CLASSIFYTYPE subType);
 
     void create(cc::Vec3 position, cc::Vec3 eulerAngle);
     void remove();

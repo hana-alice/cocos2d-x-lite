@@ -2,26 +2,33 @@
 #include "math/Vec3.h"
 namespace cc {
 
-enum class MODELTYPE : INT32 {
-    MAINCAR = -1,
-    CAR = 0,
+enum class MODELTYPE : int32_t {
+    MAINCAR = 0,
+    CAR = 1,
     HUMAN,
     BYCYCLE,
     TRUCK,
 };
 
-enum class CMIACTION : uint32_t {
+enum class CMIACTION : int32_t {
     CREATE,
     REMOVE,
     UPDATE
 };
 
+enum class CLASSIFYTYPE : int32_t {
+    OPTION_0,
+    OPTION_1,
+    OPTION_2
+};
+
 struct CMIData {
     CMIACTION action;
-    MODELTYPE type;
+    MODELTYPE modelType;
+    CLASSIFYTYPE classifyType;
     float speed;
     uint32_t modelID;
-    uint32_t timeStamp;
+    float timeStamp;
     cc::Vec3 position;
     cc::Vec3 eulerAngle;
 };
@@ -29,6 +36,7 @@ struct CMIData {
 enum class CMIDATATYPE {
     ACTION = 0,
     MODEL_TYPE,
+    CLASSIFY_TYPE,
     SPEED,
     MODEL_ID,
     TIMESTAMP,

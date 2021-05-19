@@ -12,8 +12,6 @@ GameAgent *GameAgent::_instance = nullptr;
 namespace {
 se::Value _CMIDataCmds;
 
-se::Object *jsonConfigs = nullptr;
-
 } // namespace
 
 std::vector<CMIData> recordCmds;
@@ -79,11 +77,7 @@ void GameAgent::onResume() {
 void GameAgent::tick() {
     _gameHadler->Application::tick();
     se::AutoHandleScope scp;
-
-    if (!jsonConfigs) {
-        jsonConfigs = se::Object::createArrayObject(0);
-    }
-
+    
     if (se::ScriptEngine::getInstance()->isValid()) {
         for (size_t j = 0; j < recordCmds.size(); j++) {
             /*auto cfg = se::Object::createArrayObject(propSize);
@@ -92,39 +86,43 @@ void GameAgent::tick() {
             }
             jsonConfigs->setArrayElement(j, se::Value(cfg));*/
         }
+        se::Object* jsonConfigs = se::Object::createArrayObject(recordCmds.size());
         if (!recordCmds.empty()) {
+            
             // order matters
             for (size_t i = 0; i < recordCmds.size(); i++) {
                 const uint propSize = (uint32_t)cc::CMIDATATYPE::COUNT;
                 auto cfg = se::Object::createArrayObject(propSize);
                 const CMIData &cmd = recordCmds[i];
                 cfg->setArrayElement(0, se::Value((uint32_t)cmd.action));
-                cfg->setArrayElement(1, se::Value((int32_t)cmd.type));
-                cfg->setArrayElement(2, se::Value((float)cmd.speed));
-                cfg->setArrayElement(3, se::Value((uint32_t)cmd.modelID));
-                cfg->setArrayElement(4, se::Value((uint32_t)cmd.timeStamp));
-                cfg->setArrayElement(5, se::Value((float)cmd.position.x));
-                cfg->setArrayElement(6, se::Value((float)cmd.position.y));
-                cfg->setArrayElement(7, se::Value((float)cmd.position.z));
-                cfg->setArrayElement(8, se::Value((float)cmd.eulerAngle.x));
-                cfg->setArrayElement(9, se::Value((float)cmd.eulerAngle.y));
-                cfg->setArrayElement(10, se::Value((float)cmd.eulerAngle.z));
+                cfg->setArrayElement(1, se::Value((int32_t)cmd.modelType));
+                cfg->setArrayElement(2, se::Value((int32_t)cmd.classifyType));
+                cfg->setArrayElement(3, se::Value((float)cmd.speed));
+                cfg->setArrayElement(4, se::Value((uint32_t)cmd.modelID));
+                cfg->setArrayElement(5, se::Value((uint32_t)cmd.timeStamp));
+                cfg->setArrayElement(6, se::Value((float)cmd.position.x));
+                cfg->setArrayElement(7, se::Value((float)cmd.position.y));
+                cfg->setArrayElement(8, se::Value((float)cmd.position.z));
+                cfg->setArrayElement(9, se::Value((float)cmd.eulerAngle.x));
+                cfg->setArrayElement(10, se::Value((float)cmd.eulerAngle.y));
+                cfg->setArrayElement(11, se::Value((float)cmd.eulerAngle.z));
 
                 jsonConfigs->setArrayElement(i, se::Value(cfg));
             }
-        }
-        recordCmds.clear();
-        _CMIDataCmds = se::Value(jsonConfigs);
-
-        auto globalJSThis = se::ScriptEngine::getInstance()->getGlobalObject();
-        se::Value nsVal;
-        if (!globalJSThis->getProperty("_CMIDataCmds", &nsVal)) {
+            auto globalJSThis = se::ScriptEngine::getInstance()->getGlobalObject();
+            _CMIDataCmds.setObject(jsonConfigs);
+            se::Value nsVal;
+            bool exist = globalJSThis->getProperty("_CMIDataCmds", &nsVal);
+            //if (!exist)
             globalJSThis->setProperty("_CMIDataCmds", _CMIDataCmds);
         }
+        
+        recordCmds.clear();
+        
     }
 }
 
-void GameAgent::createModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec3 eulerAngle) {
+void GameAgent::createModel(uint32_t modelID, MODELTYPE modelType, CLASSIFYTYPE subType, Vec3 position, Vec3 eulerAngle) {
     /*    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
         return modelID == data.modelID && data.action != CMIACTION::REMOVE;
     });
@@ -137,16 +135,17 @@ void GameAgent::createModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec
     } else */
     {
         recordCmds.push_back({CMIACTION::CREATE,
-                              type,
+                              modelType,
+                              subType,
                               0,
                               modelID,
-                              _timeStamp,
+                              0.0,
                               position,
                               eulerAngle});
     }
 }
 
-void GameAgent::removeModel(uint32_t modelID, MODELTYPE type) {
+void GameAgent::removeModel(uint32_t modelID) {
     /*    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
         return modelID == data.modelID && data.action != CMIACTION::REMOVE;
     });
@@ -156,23 +155,25 @@ void GameAgent::removeModel(uint32_t modelID, MODELTYPE type) {
     } else*/
     {
         recordCmds.push_back({CMIACTION::REMOVE,
-                              type,
+                              MODELTYPE::CAR,
+                              CLASSIFYTYPE::OPTION_0,
                               0,
                               modelID,
-                              _timeStamp,
+                              0.0,
                               Vec3(0, 0, 0),
                               Vec3(0, 0, 0)});
     }
 }
 
-void GameAgent::updateModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec3 eulerAngle, float speed) {
+void GameAgent::updateModel(uint32_t modelID, Vec3 position, Vec3 eulerAngle, float speed) {
     // for Example Presentation TS update every second, merge update when frame driven.
     // this is friednly to increase frame rate.
     recordCmds.push_back({CMIACTION::UPDATE,
-                          type,
+                          MODELTYPE::CAR,
+                          CLASSIFYTYPE::OPTION_0,
                           speed,
                           modelID,
-                          _timeStamp,
+                          0.0,
                           position,
                           eulerAngle});
 }
@@ -187,6 +188,21 @@ void GameAgent::animationOn(uint32_t modelID) {
 }
 
 void GameAgent::animationOff(uint32_t modelID) {
+}
+
+float GameAgent::getGlobalTimeStamp()
+{
+    se::AutoHandleScope scp;
+    float timestamp = 0.0f;
+
+    if (se::ScriptEngine::getInstance()->isValid()) {
+        auto globalJSThis = se::ScriptEngine::getInstance()->getGlobalObject();
+        se::Value nsVal;
+        bool exist = globalJSThis->getProperty("_globalTimeStamp", &nsVal);
+        if(exist && !nsVal.isUndefined())
+            timestamp = nsVal.toFloat();
+    }
+    return timestamp;
 }
 
 } // namespace cc

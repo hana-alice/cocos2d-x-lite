@@ -45,9 +45,9 @@ public:
     bool init();
     
 
-    void createModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec3 eulerAngle);
-    void removeModel(uint32_t modelID, MODELTYPE type);
-    void updateModel(uint32_t modelID, MODELTYPE type, Vec3 position, Vec3 eulerAngle, float speed);
+    void createModel(uint32_t modelID, MODELTYPE type, CLASSIFYTYPE subType, Vec3 position, Vec3 eulerAngle);
+    void removeModel(uint32_t modelID);
+    void updateModel(uint32_t modelID, Vec3 position, Vec3 eulerAngle, float speed);
 
     void enable(uint32_t modelID);
     void disable(uint32_t modelID);
@@ -55,6 +55,7 @@ public:
     void animationOn(uint32_t modelID);
     void animationOff(uint32_t modelID);
 
+    float getGlobalTimeStamp();
 private:
     GameAgent(Game* gameHandler);
 
