@@ -5,15 +5,15 @@
 #include <unordered_map>
 
 #include "ExampleCase.h"
+#include "Model.h"
+#include "ccdef.h"
 #include "json/document.h"
 #include "json/rapidjson.h"
-#include "ccdef.h"
-#include "Model.h"
 
 using namespace rapidjson;
 using namespace cc;
 void ExampleCase::init() {
-    std::ifstream ifs("D:\\dev\\project\\auto-drive111\\auto-drive\\native\\engine\\common\\Classes\\transfer.json");
+    std::ifstream ifs("E:\\tmp\\auto-drive\\auto-drive\\native\\engine\\common\\Classes\\transfer.json");
     std::string content((std::istreambuf_iterator<char>(ifs)),
                         (std::istreambuf_iterator<char>()));
     Document document;
@@ -25,7 +25,6 @@ void ExampleCase::init() {
     assert(data.IsArray());
 
     _simulateDatas.reserve(data.Size());
-
     for (SizeType i = 0; i < data.Size(); i++) {
         assert(data[i].HasMember("timestamp"));
         assert(data[i].HasMember("action"));
@@ -95,31 +94,28 @@ void ExampleCase::update() {
 
     GameAgent *agent = GameAgent::getInstance();
     for (int i = 0; i < _simulateDatas.size(); i++) {
-        if (secs == _simulateDatas[i].timeStamp) {
-            
+        if (secs - 3 == _simulateDatas[i].timeStamp) {
+
             const CMIData &data = _simulateDatas[i];
             if (data.action == CMIACTION::CREATE) {
                 Model model;
                 model.init(data.modelID, data.type);
                 model.create(data.position, data.eulerAngle);
-                modelMap.insert({ data.modelID, model});
+                modelMap.insert({data.modelID, model});
             } else {
-                auto iter = std::find_if(modelMap.begin(), modelMap.end(), [data](std::unordered_map<uint32_t, Model>::value_type val) {
-                    return val.second.getData().modelID == data.modelID;
-                });
+                auto iter = modelMap.find(data.modelID);
                 if (iter != modelMap.end()) {
                     switch (data.action) {
-                    case CMIACTION::UPDATE:
-                        iter->second.update(data.position, data.eulerAngle, data.speed);
-                        break;
-                    case CMIACTION::REMOVE:
-                    {
-                        iter->second.remove();
-                        modelMap.erase(iter);
-                        break;
-                    }
-                    default:
-                        break;
+                        case CMIACTION::UPDATE:
+                            iter->second.update(data.position, data.eulerAngle, data.speed);
+                            break;
+                        case CMIACTION::REMOVE: {
+                            iter->second.remove();
+                            modelMap.erase(iter);
+                            break;
+                        }
+                        default:
+                            break;
                     }
                 }
             }

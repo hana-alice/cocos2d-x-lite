@@ -17,6 +17,8 @@ set(PROJ_COMMON_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/GameAgent.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/ExampleCase.h
     ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/ExampleCase.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/Model.h
+    ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/Model.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/ccdef.h
 )
 

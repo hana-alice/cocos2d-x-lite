@@ -98,15 +98,15 @@ void GameAgent::tick() {
 
                 cfg->setArrayElement(0, se::Value((uint32_t)cmd.action));
                 cfg->setArrayElement(1, se::Value((uint32_t)cmd.type));
-                cfg->setArrayElement(2, se::Value((uint32_t)cmd.speed));
+                cfg->setArrayElement(2, se::Value((float)cmd.speed));
                 cfg->setArrayElement(3, se::Value((uint32_t)cmd.modelID));
                 cfg->setArrayElement(4, se::Value((uint32_t)cmd.timeStamp));
-                cfg->setArrayElement(5, se::Value((uint32_t)cmd.position.x));
-                cfg->setArrayElement(6, se::Value((uint32_t)cmd.position.y));
-                cfg->setArrayElement(7, se::Value((uint32_t)cmd.position.z));
-                cfg->setArrayElement(8, se::Value((uint32_t)cmd.eulerAngle.x));
-                cfg->setArrayElement(9, se::Value((uint32_t)cmd.eulerAngle.y));
-                cfg->setArrayElement(10, se::Value((uint32_t)cmd.eulerAngle.z));
+                cfg->setArrayElement(5, se::Value((float)cmd.position.x));
+                cfg->setArrayElement(6, se::Value((float)cmd.position.y));
+                cfg->setArrayElement(7, se::Value((float)cmd.position.z));
+                cfg->setArrayElement(8, se::Value((float)cmd.eulerAngle.x));
+                cfg->setArrayElement(9, se::Value((float)cmd.eulerAngle.y));
+                cfg->setArrayElement(10, se::Value((float)cmd.eulerAngle.z));
 
                 jsonConfigs->setArrayElement(i, se::Value(cfg));
             }
@@ -152,7 +152,7 @@ void GameAgent::removeModel(uint32_t modelID, ModelType type) {
         it->action = CMIACTION::REMOVE;
     } else*/ {
         recordCmds.push_back({CMIACTION::REMOVE,
-                              ModelType::CAR,
+                              type,
                               0,
                               modelID,
                               _timeStamp,
@@ -162,17 +162,17 @@ void GameAgent::removeModel(uint32_t modelID, ModelType type) {
 }
 
 void GameAgent::updateModel(uint32_t modelID, ModelType type, Vec3 position, Vec3 eulerAngle, float speed) {
-    //auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
-    //    return modelID == data.modelID && data.action != CMIACTION::REMOVE;
-    //});
-    //
-    //if (it == recordCmds.end())
-    //    return;
+    auto it = std::find_if(recordCmds.begin(), recordCmds.end(), [modelID](const CMIData &data) {
+        return modelID == data.modelID && data.action != CMIACTION::REMOVE;
+    });
+    
+    if (it == recordCmds.end())
+        return;
 
     // for Example Presentation TS update every second, merge update when frame driven.
     // this is friednly to increase frame rate.
     recordCmds.push_back({CMIACTION::UPDATE,
-                          ModelType::CAR,
+                          type,
                           speed,
                           modelID,
                           _timeStamp,
