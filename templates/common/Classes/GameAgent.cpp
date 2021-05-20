@@ -79,16 +79,8 @@ void GameAgent::tick() {
     se::AutoHandleScope scp;
     
     if (se::ScriptEngine::getInstance()->isValid()) {
-        for (size_t j = 0; j < recordCmds.size(); j++) {
-            /*auto cfg = se::Object::createArrayObject(propSize);
-            for (size_t i = 0; i < propSize; i++) {
-                cfg->setArrayElement(i, eg[i]);
-            }
-            jsonConfigs->setArrayElement(j, se::Value(cfg));*/
-        }
         se::Object* jsonConfigs = se::Object::createArrayObject(recordCmds.size());
         if (!recordCmds.empty()) {
-            
             // order matters
             for (size_t i = 0; i < recordCmds.size(); i++) {
                 const uint propSize = (uint32_t)cc::CMIDATATYPE::COUNT;
@@ -114,7 +106,8 @@ void GameAgent::tick() {
             se::Value nsVal;
             bool exist = globalJSThis->getProperty("_CMIDataCmds", &nsVal);
             //if (!exist)
-            globalJSThis->setProperty("_CMIDataCmds", _CMIDataCmds);
+            nsVal.setObject(jsonConfigs);
+            globalJSThis->setProperty("_CMIDataCmds", nsVal);
         }
         
         recordCmds.clear();
@@ -168,14 +161,16 @@ void GameAgent::removeModel(uint32_t modelID) {
 void GameAgent::updateModel(uint32_t modelID, Vec3 position, Vec3 eulerAngle, float speed) {
     // for Example Presentation TS update every second, merge update when frame driven.
     // this is friednly to increase frame rate.
-    recordCmds.push_back({CMIACTION::UPDATE,
-                          MODELTYPE::CAR,
-                          CLASSIFYTYPE::OPTION_0,
-                          speed,
-                          modelID,
-                          0.0,
-                          position,
-                          eulerAngle});
+ {
+        recordCmds.push_back({ CMIACTION::UPDATE,
+                              MODELTYPE::CAR,
+                              CLASSIFYTYPE::OPTION_0,
+                              speed,
+                              modelID,
+                              0.0,
+                              position,
+                              eulerAngle });
+    }
 }
 
 void GameAgent::enable(uint32_t modelID) {

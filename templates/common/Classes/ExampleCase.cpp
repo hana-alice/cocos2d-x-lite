@@ -14,7 +14,7 @@
 using namespace rapidjson;
 using namespace cc;
 void ExampleCase::init() {
-    std::ifstream ifs("D:\\dev\\project\\autodrivedemo\\autodrivedemo\\native\\engine\\common\\Classes\\transfer.json");
+    std::ifstream ifs("E:\\tmp\\autodrivedemo1\\autodrivedemo\\autodrivedemo\\native\\engine\\common\\Classes\\transfer.json");
     std::string content((std::istreambuf_iterator<char>(ifs)),
                         (std::istreambuf_iterator<char>()));
     Document document;
@@ -88,9 +88,9 @@ void ExampleCase::init() {
                                       Vec3(0.0f, 0.0f, 0.0f)});
         }
     }
-    std::sort(_simulateDatas.begin(), _simulateDatas.end(), [](const CMIData &lhs, const CMIData &rhs) {
+    /*std::sort(_simulateDatas.begin(), _simulateDatas.end(), [](const CMIData &lhs, const CMIData &rhs) {
         return lhs.timeStamp < rhs.timeStamp;
-    });
+    });*/
 }
 
 void ExampleCase::update() {
@@ -108,29 +108,34 @@ void ExampleCase::update() {
     GameAgent *agent = GameAgent::getInstance();
     float jsTimeStamp = agent->getGlobalTimeStamp();
     for (int i = 0; i < _simulateDatas.size(); i++) {
-        if (fabs(jsTimeStamp - _simulateDatas[i].timeStamp) < 0.01) {
+        if (fabs(jsTimeStamp - _simulateDatas[i].timeStamp) < 0.016) {
             const CMIData &data = _simulateDatas[i];
 
-            if (data.action == CMIACTION::CREATE) {
-                Actor actor;
-                actor.init(data.modelID, data.modelType, data.classifyType);
-                actor.create(data.position, data.eulerAngle);
-                actorMap.insert({data.modelID, actor});
+            auto iter = actorMap.find(data.modelID);
+            if (iter == actorMap.end()) {
+                if (data.action == CMIACTION::CREATE) {
+                    Actor actor;
+                    actor.init(data.modelID, data.modelType, data.classifyType);
+                    actor.create(data.position, data.eulerAngle);
+                    actorMap.insert({ data.modelID, actor });
+                }
+
             } else {
-                auto iter = actorMap.find(data.modelID);
-                if (iter != actorMap.end()) {
+                //auto iter = actorMap.find(data.modelID);
+                //if (iter != actorMap.end()) {
                     switch (data.action) {
                         case CMIACTION::UPDATE:
                             iter->second.update(data.position, data.eulerAngle, data.speed);
                             break;
                         case CMIACTION::REMOVE: {
                             iter->second.remove();
+                            actorMap.erase(iter);
                             break;
                         }
                         default:
                             break;
                     }
-                }
+                //}
             }
         }
     }
