@@ -13,6 +13,11 @@ set(PROJ_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/Game.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/GameAgent.h
     ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/GameAgent.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/ExampleCase.h
+    ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/ExampleCase.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/Actor.h
+    ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/Actor.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../common/Classes/ccdef.h
     ${CMAKE_CURRENT_LIST_DIR}/jni/main.cpp
 )
 

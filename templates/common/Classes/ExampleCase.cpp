@@ -10,19 +10,24 @@
 #include "cocos/base/Log.h"
 #include "json/document.h"
 #include "json/rapidjson.h"
-
+#include "cocos/platform/android/FileUtils-android.h";
 using namespace rapidjson;
 using namespace cc;
 void ExampleCase::init() {
+#if defined(_WIN32) || defined(__WIN32__)
     std::ifstream ifs("E:\\tmp\\autodrivedemo1\\autodrivedemo\\autodrivedemo\\native\\engine\\common\\Classes\\transfer.json");
     std::string content((std::istreambuf_iterator<char>(ifs)),
                         (std::istreambuf_iterator<char>()));
+#elif defined(__ANDROID__)
+    std::string path = FileUtilsAndroid::getInstance()->getDefaultResourceRootPath();
+    std::string content =  FileUtilsAndroid::getInstance()->getStringFromFile("assets/resources/transfer.json");
+#endif
     Document document;
     document.Parse(content.c_str());
     assert(document.IsObject());
     assert(document.HasMember("transferData"));
 
-    const Value &data = document["transferData"];
+    const rapidjson::Value &data = document["transferData"];
     assert(data.IsArray());
 
     _simulateDatas.reserve(data.Size());
@@ -108,16 +113,15 @@ void ExampleCase::update() {
     GameAgent *agent = GameAgent::getInstance();
     float jsTimeStamp = agent->getGlobalTimeStamp();
     for (int i = 0; i < _simulateDatas.size(); i++) {
-        if (fabs(jsTimeStamp - _simulateDatas[i].timeStamp) < 0.016) {
+        if (fabs(jsTimeStamp - _simulateDatas[i].timeStamp) < 0.033) {
             const CMIData &data = _simulateDatas[i];
 
             auto iter = actorMap.find(data.modelID);
             if (iter == actorMap.end()) {
                 if (data.action == CMIACTION::CREATE) {
-                    Actor actor;
-                    actor.init(data.modelID, data.modelType, data.classifyType);
-                    actor.create(data.position, data.eulerAngle);
-                    actorMap.insert({ data.modelID, actor });
+                    Actor actor(data.modelID, data.modelType, data.classifyType);
+                    actor.init(data.position, data.eulerAngle);
+                    actorMap.insert({ data.modelID, std::move(actor)});
                 }
 
             } else {
@@ -128,7 +132,6 @@ void ExampleCase::update() {
                             iter->second.update(data.position, data.eulerAngle, data.speed);
                             break;
                         case CMIACTION::REMOVE: {
-                            iter->second.remove();
                             actorMap.erase(iter);
                             break;
                         }

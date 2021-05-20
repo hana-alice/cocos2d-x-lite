@@ -37,13 +37,12 @@ namespace cc {
 typedef bool (*OnTickCallbackFunc)(long long deltaTime);
 class GameAgent {
 
-    friend class Game;
+    friend class ::Game;
 
 public:
     static GameAgent *getInstance();
 
     bool init();
-    
 
     void createModel(uint32_t modelID, MODELTYPE type, CLASSIFYTYPE subType, Vec3 position, Vec3 eulerAngle);
     void removeModel(uint32_t modelID);
@@ -62,7 +61,6 @@ private:
     void onPause();
     void onResume();
     void tick();
-    
 
     static GameAgent *_instance;
     uint32_t _timeStamp = 0;
