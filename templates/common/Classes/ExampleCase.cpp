@@ -8,9 +8,9 @@
 #include "ExampleCase.h"
 #include "ccdef.h"
 #include "cocos/base/Log.h"
+#include "cocos/platform/android/FileUtils-android.h";
 #include "json/document.h"
 #include "json/rapidjson.h"
-#include "cocos/platform/android/FileUtils-android.h";
 using namespace rapidjson;
 using namespace cc;
 void ExampleCase::init() {
@@ -20,7 +20,7 @@ void ExampleCase::init() {
                         (std::istreambuf_iterator<char>()));
 #elif defined(__ANDROID__)
     std::string path = FileUtilsAndroid::getInstance()->getDefaultResourceRootPath();
-    std::string content =  FileUtilsAndroid::getInstance()->getStringFromFile("assets/resources/transfer.json");
+    std::string content = FileUtilsAndroid::getInstance()->getStringFromFile("assets/resources/transfer.json");
 #endif
     Document document;
     document.Parse(content.c_str());
@@ -51,7 +51,7 @@ void ExampleCase::init() {
             float eulerX = singlePack["eX"].GetFloat();
             float eulerY = singlePack["eY"].GetFloat();
             float eulerZ = singlePack["eZ"].GetFloat();
-            
+
             _simulateDatas.push_back({CMIACTION::CREATE,
                                       (MODELTYPE)modelType,
                                       (CLASSIFYTYPE)classifyType,
@@ -61,7 +61,6 @@ void ExampleCase::init() {
                                       Vec3(posX, posY, posZ),
                                       Vec3(eulerX, eulerY, eulerZ)});
         } else if (strcmp(singlePack["action"].GetString(), "updateModel") == 0) {
-            //uint32_t modelType = atoi(singlePack["modelType"].GetString());
             uint32_t modelID = singlePack["modelID"].GetInt();
             float timeStamp = singlePack["timestamp"].GetFloat();
             float posX = singlePack["pX"].GetFloat();
@@ -80,7 +79,6 @@ void ExampleCase::init() {
                                       Vec3(posX, posY, posZ),
                                       Vec3(eulerX, eulerY, eulerZ)});
         } else if (strcmp(singlePack["action"].GetString(), "removeModel") == 0) {
-            //uint32_t modelType = atoi(singlePack["modelType"].GetString());
             uint32_t modelID = singlePack["modelID"].GetInt();
             float timeStamp = singlePack["timestamp"].GetFloat();
             _simulateDatas.push_back({CMIACTION::REMOVE,
@@ -113,32 +111,31 @@ void ExampleCase::update() {
     GameAgent *agent = GameAgent::getInstance();
     float jsTimeStamp = agent->getGlobalTimeStamp();
     for (int i = 0; i < _simulateDatas.size(); i++) {
-        if (fabs(jsTimeStamp - _simulateDatas[i].timeStamp) < 0.033) {
+        if (fabs(jsTimeStamp - _simulateDatas[i].timeStamp) < 0.016) {
             const CMIData &data = _simulateDatas[i];
 
             auto iter = actorMap.find(data.modelID);
             if (iter == actorMap.end()) {
                 if (data.action == CMIACTION::CREATE) {
-                    Actor actor(data.modelID, data.modelType, data.classifyType);
-                    actor.init(data.position, data.eulerAngle);
-                    actorMap.insert({ data.modelID, std::move(actor)});
+                    Actor actor;
+                    actor.init(data.modelID, data.modelType, data.classifyType);
+                    actor.create(data.position, data.eulerAngle);
+                    actorMap.insert({data.modelID, actor});
                 }
 
             } else {
-                //auto iter = actorMap.find(data.modelID);
-                //if (iter != actorMap.end()) {
-                    switch (data.action) {
-                        case CMIACTION::UPDATE:
-                            iter->second.update(data.position, data.eulerAngle, data.speed);
-                            break;
-                        case CMIACTION::REMOVE: {
-                            actorMap.erase(iter);
-                            break;
-                        }
-                        default:
-                            break;
+                switch (data.action) {
+                    case CMIACTION::UPDATE:
+                        iter->second.update(data.position, data.eulerAngle, data.speed);
+                        break;
+                    case CMIACTION::REMOVE: {
+                        iter->second.remove();
+                        actorMap.erase(iter);
+                        break;
                     }
-                //}
+                    default:
+                        break;
+                }
             }
         }
     }
