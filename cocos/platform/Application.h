@@ -94,7 +94,7 @@ public:
 
     void restart() { _needRestart = true; }
 
-    void tick();
+    virtual void tick();
 
     void restartVM();
 

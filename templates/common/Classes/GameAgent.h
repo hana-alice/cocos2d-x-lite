@@ -1,8 +1,8 @@
 /****************************************************************************
- Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
- 
+ Copyright (c) 2018 Xiamen Yaji Software Co., Ltd.
+
  http://www.cocos.com
- 
+
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated engine source code (the "Software"), a limited,
  worldwide, royalty-free, non-assignable, revocable and non-exclusive license
@@ -10,10 +10,10 @@
  not use Cocos Creator software for developing other software or tools that's
  used for developing games. You are not granted to publish, distribute,
  sublicense, and/or sell copies of Cocos Creator.
- 
+
  The software or tools in this License Agreement are licensed, not sold.
  Xiamen Yaji Software Co., Ltd. reserves all rights not expressly granted to you.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,42 +22,48 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
  ****************************************************************************/
-#include "Game.h"
-#include "GameAgent.h"
+#pragma once
+/**
+ @brief    The cocos2d Application.
+ 
+ The reason for implement as private inheritance is to hide some interface call by Director.
+ */
+#include "math/Vec3.h"
+#include "ccdef.h"
 
-#include "ExampleCase.h"
+class Game;
+namespace cc {
 
-ExampleCase egCase;
+typedef bool (*OnTickCallbackFunc)(long long deltaTime);
+class GameAgent {
 
-Game::Game(int width, int height) : cc::Application(width, height) {
-    if (!_agent) {
-        _agent = new cc::GameAgent(this);
-    }
+    friend class ::Game;
 
-    egCase.init();
-}
+public:
+    static GameAgent *getInstance();
 
-Game::~Game() {
-    if (_agent) {
-        delete _agent;
-        _agent = nullptr;
-    }
-}
+    bool init();
 
-bool Game::init() {
-    return _agent->init();
-}
+    void createModel(uint32_t modelID, MODELTYPE type, CLASSIFYTYPE subType, Vec3 position, Vec3 eulerAngle);
+    void removeModel(uint32_t modelID);
+    void updateModel(uint32_t modelID, Vec3 position, Vec3 eulerAngle, float speed);
 
-void Game::onPause() {
-    _agent->onPause();
-}
+    void enable(uint32_t modelID);
+    void disable(uint32_t modelID);
 
-void Game::onResume() {
-    _agent->onResume();
-}
+    void animationOn(uint32_t modelID);
+    void animationOff(uint32_t modelID);
 
-void Game::tick() {
-    _agent->tick();
+    float getGlobalTimeStamp();
+private:
+    GameAgent(Game* gameHandler);
 
-    egCase.update();
-}
+    void onPause();
+    void onResume();
+    void tick();
+
+    static GameAgent *_instance;
+    uint32_t _timeStamp = 0;
+    Game* _gameHadler = nullptr;
+};
+} // namespace cc

@@ -30,14 +30,23 @@
  
  The reason for implement as private inheritance is to hide some interface call by Director.
  */
-class Game : public cc::Application
-{
+namespace cc {
+class GameAgent;
+}
+
+class Game : public cc::Application {
 public:
     /**
      * width and height in logical pixel unit
      */
     Game(int width, int height);
+    ~Game();
     virtual bool init() override;
     virtual void onPause() override;
     virtual void onResume() override;
+    virtual void tick() override;
+
+private:
+    cc::GameAgent *_agent     = nullptr;
+    uint64_t       _timeStamp = 0;
 };
