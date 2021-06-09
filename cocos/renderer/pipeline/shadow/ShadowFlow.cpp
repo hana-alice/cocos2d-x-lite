@@ -36,6 +36,8 @@
 #include "../SceneCulling.h"
 
 namespace cc::pipeline {
+std::unordered_map<uint, cc::gfx::RenderPass*> ShadowFlow::_renderPassHashMap;
+
 RenderFlowInfo ShadowFlow::initInfo = {
     "ShadowFlow",
     static_cast<uint>(ForwardFlowPriority::SHADOW),
@@ -43,8 +45,6 @@ RenderFlowInfo ShadowFlow::initInfo = {
     {},
 };
 const RenderFlowInfo &ShadowFlow::getInitializeInfo() { return ShadowFlow::initInfo; }
-
-std::unordered_map<uint, cc::gfx::RenderPass*> renderPassHashMap;
 
 ShadowFlow::~ShadowFlow() = default;
 
@@ -203,12 +203,12 @@ void ShadowFlow::initShadowFrameBuffer(RenderPipeline *pipeline, const Light *li
     rpInfo.depthStencilAttachment = depthStencilAttachment;
     
     uint rpHash = cc::gfx::RenderPass::computeHash(rpInfo);
-    auto iter = renderPassHashMap.find(rpHash);
-    if(iter != renderPassHashMap.end()) {
+    auto iter = _renderPassHashMap.find(rpHash);
+    if(iter != _renderPassHashMap.end()) {
         _renderPass = iter->second;
     } else {
-        _renderPass                   = device->createRenderPass(rpInfo);
-        renderPassHashMap.insert({rpHash, _renderPass});
+        _renderPass = device->createRenderPass(rpInfo);
+        _renderPassHashMap.insert({rpHash, _renderPass});
     }
 
     vector<gfx::Texture *> renderTargets;
@@ -244,10 +244,10 @@ void ShadowFlow::initShadowFrameBuffer(RenderPipeline *pipeline, const Light *li
 
 void ShadowFlow::destroy() {
     
-    for (auto rpPair: renderPassHashMap) {
+    for (auto rpPair: _renderPassHashMap) {
         rpPair.second->destroy();
     }
-    renderPassHashMap.clear();
+    _renderPassHashMap.clear();
     _renderPass = nullptr;
 
     for (auto *texture : _usedTextures) {
