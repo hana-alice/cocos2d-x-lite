@@ -263,6 +263,14 @@ void CCMTLDevice::present() {
     _numDrawCalls = queue->_numDrawCalls;
     _numInstances = queue->_numInstances;
     _numTriangles = queue->_numTriangles;
+    
+    for (auto iter = _bufferDependency.begin(); iter != _bufferDependency.end();) {
+        if(!(*iter)->isPostRelied()) {
+            iter = _bufferDependency.erase(iter);
+        } else {
+            iter++;
+        }
+    }
 
     //hold this pointer before update _currentFrameIndex
     _currentBufferPoolId = _currentFrameIndex;
@@ -379,6 +387,16 @@ void CCMTLDevice::onMemoryWarning() {
 
 uint CCMTLDevice::preferredPixelFormat() {
     return static_cast<uint>([((CAMetalLayer*)_mtlLayer) pixelFormat]);
+}
+
+bool CCMTLDevice::dependencyCheck(Buffer* buf) {
+    auto iter = _bufferDependency.find(buf);
+    bool found = iter != _bufferDependency.end();
+    buf->setPostRelied(found);
+    if (!found) {
+        _bufferDependency.insert(buf);
+    }
+    return found;
 }
 
 } // namespace gfx
