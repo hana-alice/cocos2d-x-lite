@@ -390,6 +390,22 @@ It should work same as apples CFSwapInt32LittleToHost(..)
     #define CC_INLINE __inline
 #endif
 
+#define ENABLE_COPY_SEMANTICS(cls) \
+    cls(const cls &) = default;    \
+    cls &operator=(const cls &) = default;
+
+#define DISABLE_COPY_SEMANTICS(cls) \
+    cls(const cls &) = delete;      \
+    cls &operator=(const cls &) = delete;
+
+#define ENABLE_MOVE_SEMANTICS(cls) \
+    cls(cls &&)  = default;        \
+    cls &operator=(cls &&) = default;
+
+#define DISABLE_MOVE_SEMANTICS(cls) \
+    cls(cls &&)  = delete;          \
+    cls &operator=(cls &&) = delete;
+
 // Asserts expression is true at compile-time
 #define CC_COMPILER_ASSERT(x) typedef int COMPILER_ASSERT_[!!(x)]
 
@@ -537,7 +553,7 @@ It should work same as apples CFSwapInt32LittleToHost(..)
 /* Stack-alignment
  If macro __CC_SIMD_ALIGN_STACK defined, means there requests
  special code to ensure stack align to a 16-bytes boundary.
- 
+
  Note:
  This macro can only guarantee callee stack pointer (esp) align
  to a 16-bytes boundary, but not that for frame pointer (ebp).
