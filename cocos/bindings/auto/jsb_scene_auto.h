@@ -147,7 +147,7 @@ SE_DECLARE_FUNC(js_scene_Model_getWorldBounds);
 SE_DECLARE_FUNC(js_scene_Model_seVisFlag);
 SE_DECLARE_FUNC(js_scene_Model_setCastShadow);
 SE_DECLARE_FUNC(js_scene_Model_setEnabled);
-SE_DECLARE_FUNC(js_scene_Model_setInstmatWorldIdx);
+SE_DECLARE_FUNC(js_scene_Model_setInstMatWorldIdx);
 SE_DECLARE_FUNC(js_scene_Model_setLocalBuffer);
 SE_DECLARE_FUNC(js_scene_Model_setNode);
 SE_DECLARE_FUNC(js_scene_Model_setReceiveShadow);

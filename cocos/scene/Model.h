@@ -67,7 +67,7 @@ public:
 
     inline void setCastShadow(bool value) { _castShadow = value; }
     inline void setEnabled(bool value) { _enabled = value; }
-    inline void setInstmatWorldIdx(int32_t idx) { _instMatWorldIdx = idx; }
+    inline void setInstMatWorldIdx(int32_t idx) { _instMatWorldIdx = idx; }
     inline void setLocalBuffer(gfx::Buffer *buffer) { _localBuffer = buffer; }
     inline void setNode(Node *node) { _node = node; }
     inline void setReceiveShadow(bool value) { _receiveShadow = value; }
