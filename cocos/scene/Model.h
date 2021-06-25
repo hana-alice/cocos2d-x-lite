@@ -118,7 +118,7 @@ private:
 
     int32_t                         _instMatWorldIdx{-1};
     uint32_t                        _visFlags;
-    int32_t                         _updateStamp{0};
+    int32_t                         _updateStamp{-1};
     Node *                          _transform{nullptr};
     Node *                          _node{nullptr};
     float *                         _localData{nullptr};
