@@ -86,7 +86,7 @@ bool GLES3Device::doInit(const DeviceInfo &info) {
 
     _gpuStateCache          = CC_NEW(GLES3GPUStateCache);
     _gpuStagingBufferPool   = CC_NEW(GLES3GPUStagingBufferPool);
-    _gpuExtensionRegistry   = CC_NEW(GLES3GPUExtensionRegistry);
+    _gpuConstantRegistry    = CC_NEW(GLES3GPUConstantRegistry);
     _gpuFramebufferCacheMap = CC_NEW(GLES3GPUFramebufferCacheMap(_gpuStateCache));
 
     bindRenderContext(true);
@@ -128,6 +128,10 @@ bool GLES3Device::doInit(const DeviceInfo &info) {
         _features[static_cast<uint>(Feature::TEXTURE_HALF_FLOAT_LINEAR)] = true;
     }
 
+    if (checkExtension("multisampled_render_to_texture")) {
+        _gpuConstantRegistry->autoResolve = true;
+    }
+
     String fbfLevelStr = "NONE";
     if (checkExtension("framebuffer_fetch")) {
         String nonCoherent = "framebuffer_fetch_non";
@@ -138,19 +142,19 @@ bool GLES3Device::doInit(const DeviceInfo &info) {
 
         if (it != _extensions.end()) {
             if (*it == CC_TOSTR(GL_EXT_shader_framebuffer_fetch_non_coherent)) {
-                _gpuExtensionRegistry->mFBF = FBFSupportLevel::NON_COHERENT_EXT;
-                fbfLevelStr                 = "NON_COHERENT_EXT";
+                _gpuConstantRegistry->mFBF = FBFSupportLevel::NON_COHERENT_EXT;
+                fbfLevelStr                = "NON_COHERENT_EXT";
             } else if (*it == CC_TOSTR(GL_QCOM_shader_framebuffer_fetch_noncoherent)) {
-                _gpuExtensionRegistry->mFBF = FBFSupportLevel::NON_COHERENT_QCOM;
-                fbfLevelStr                 = "NON_COHERENT_QCOM";
+                _gpuConstantRegistry->mFBF = FBFSupportLevel::NON_COHERENT_QCOM;
+                fbfLevelStr                = "NON_COHERENT_QCOM";
 #ifdef GL_FRAMEBUFFER_FETCH_NONCOHERENT_QCOM //OHOS
                 GL_CHECK(glEnable(GL_FRAMEBUFFER_FETCH_NONCOHERENT_QCOM));
 #endif
             }
         } else if (checkExtension(CC_TOSTR(GL_EXT_shader_framebuffer_fetch))) {
             // we only care about EXT_shader_framebuffer_fetch, the ARM version does not support MRT
-            _gpuExtensionRegistry->mFBF = FBFSupportLevel::COHERENT;
-            fbfLevelStr                 = "COHERENT";
+            _gpuConstantRegistry->mFBF = FBFSupportLevel::COHERENT;
+            fbfLevelStr                = "COHERENT";
         }
     }
 
@@ -158,13 +162,16 @@ bool GLES3Device::doInit(const DeviceInfo &info) {
 #if CC_PLATFORM != CC_PLATFORM_WINDOWS && CC_PLATFORM != CC_PLATFORM_MAC_OSX && defined(GL_MAX_SHADER_PIXEL_LOCAL_STORAGE_SIZE_EXT) // OHOS
     if (checkExtension("pixel_local_storage")) {
         if (checkExtension("pixel_local_storage2")) {
-            _gpuExtensionRegistry->mPLS = PLSSupportLevel::LEVEL2;
+            _gpuConstantRegistry->mPLS = PLSSupportLevel::LEVEL2;
         } else {
-            _gpuExtensionRegistry->mPLS = PLSSupportLevel::LEVEL1;
+            _gpuConstantRegistry->mPLS = PLSSupportLevel::LEVEL1;
         }
-        glGetIntegerv(GL_MAX_SHADER_PIXEL_LOCAL_STORAGE_SIZE_EXT, reinterpret_cast<GLint *>(&_gpuExtensionRegistry->mPLSsize));
+        glGetIntegerv(GL_MAX_SHADER_PIXEL_LOCAL_STORAGE_SIZE_EXT, reinterpret_cast<GLint *>(&_gpuConstantRegistry->mPLSsize));
     }
 #endif
+
+    _gpuConstantRegistry->glMinorVersion     = _renderContext->minorVer();
+    _gpuConstantRegistry->defaultFramebuffer = _renderContext->getDefaultFramebuffer();
 
     String compressedFmts;
 
@@ -201,7 +208,7 @@ bool GLES3Device::doInit(const DeviceInfo &info) {
     CC_LOG_INFO("VERSION: %s", _version.c_str());
     CC_LOG_INFO("SCREEN_SIZE: %d x %d", _width, _height);
     CC_LOG_INFO("COMPRESSED_FORMATS: %s", compressedFmts.c_str());
-    CC_LOG_INFO("PIXEL_LOCAL_STORAGE: level %d, size %d", _gpuExtensionRegistry->mPLS, _gpuExtensionRegistry->mPLSsize);
+    CC_LOG_INFO("PIXEL_LOCAL_STORAGE: level %d, size %d", _gpuConstantRegistry->mPLS, _gpuConstantRegistry->mPLSsize);
     CC_LOG_INFO("FRAMEBUFFER_FETCH: %s", fbfLevelStr.c_str());
 
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, reinterpret_cast<GLint *>(&_caps.maxVertexAttributes));
@@ -239,7 +246,7 @@ bool GLES3Device::doInit(const DeviceInfo &info) {
 
 void GLES3Device::doDestroy() {
     CC_SAFE_DELETE(_gpuFramebufferCacheMap)
-    CC_SAFE_DELETE(_gpuExtensionRegistry)
+    CC_SAFE_DELETE(_gpuConstantRegistry)
     CC_SAFE_DELETE(_gpuStagingBufferPool)
     CC_SAFE_DELETE(_gpuStateCache)
 
@@ -288,7 +295,7 @@ void GLES3Device::bindRenderContext(bool bound) {
     _context = bound ? _renderContext : nullptr;
 
     if (bound) {
-        _threadID = std::hash<std::thread::id>{}(std::this_thread::get_id());
+        _gpuConstantRegistry->currentBoundThreadID = std::hash<std::thread::id>{}(std::this_thread::get_id());
         _gpuStateCache->reset();
     }
 }
@@ -306,15 +313,10 @@ void GLES3Device::bindDeviceContext(bool bound) {
     _context = bound ? _deviceContext : nullptr;
 
     if (bound) {
-        _threadID = std::hash<std::thread::id>{}(std::this_thread::get_id());
+        _gpuConstantRegistry->currentBoundThreadID = std::hash<std::thread::id>{}(std::this_thread::get_id());
         _gpuStateCache->reset();
     }
 }
-
-uint GLES3Device::getMinorVersion() const { return static_cast<GLES3Context *>(_context)->minorVer(); }
-#if (CC_PLATFORM == CC_PLATFORM_MAC_IOS)
-uint GLES3Device::getDefaultFramebuffer() const { return static_cast<GLES3Context *>(_context)->getDefaultFramebuffer(); }
-#endif
 
 CommandBuffer *GLES3Device::createCommandBuffer(const CommandBufferInfo &info, bool hasAgent) {
     if (hasAgent || info.type == CommandBufferType::PRIMARY) return CC_NEW(GLES3PrimaryCommandBuffer);

@@ -449,13 +449,13 @@ using TextureFlags = TextureFlagBit;
 CC_ENUM_OPERATORS(TextureFlagBit);
 
 enum class SampleCount {
-    X1,
-    X2,
-    X4,
-    X8,
-    X16,
-    X32,
-    X64,
+    X1  = 0x1,
+    X2  = 0x2,
+    X4  = 0x4,
+    X8  = 0x8,
+    X16 = 0x10,
+    X32 = 0x20,
+    X64 = 0x40,
 };
 
 enum class Filter {
@@ -1124,8 +1124,6 @@ struct FramebufferInfo {
     RenderPass *      renderPass = nullptr;
     TextureList       colorTextures;                 // @ts-overrides { type: '(Texture | null)[]' }
     Texture *         depthStencilTexture = nullptr; // @ts-nullable
-    std::vector<uint> colorMipmapLevels;
-    uint              depthStencilMipmapLevel = 0;
 };
 
 struct DescriptorSetLayoutBinding {

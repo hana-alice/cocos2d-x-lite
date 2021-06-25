@@ -46,7 +46,6 @@ public:
 #if (CC_PLATFORM == CC_PLATFORM_MAC_IOS)
     CC_INLINE intptr_t eagl_context() const { return _eaglContext; }
     CC_INLINE intptr_t eagl_shared_ctx() const { return _eaglSharedContext; }
-    CC_INLINE uint     getDefaultFramebuffer() const { return _defaultFBO; }
 #else
     CC_INLINE NativeDisplayType nativeDisplay() const { return _nativeDisplay; }
     CC_INLINE EGLDisplay        eglDisplay() const { return _eglDisplay; }
@@ -59,6 +58,7 @@ public:
     CC_INLINE int     majorVer() const { return _majorVersion; }
     CC_INLINE int     minorVer() const { return _minorVersion; }
     CC_INLINE uint8_t multiSampleCount() const { return _sampleCount; }
+    CC_INLINE uint    getDefaultFramebuffer() const { return _defaultFBO; }
 
     void releaseSurface(uintptr_t windowHandle);
     void acquireSurface(uintptr_t windowHandle);
@@ -77,11 +77,11 @@ protected:
     bool    _isInitialized   = false;
     uint8_t _sampleBuffers   = 0;
     uint8_t _sampleCount     = 0;
+    uint    _defaultFBO      = 0;
 #if (CC_PLATFORM == CC_PLATFORM_MAC_IOS)
     intptr_t _eaglContext       = 0;
     intptr_t _eaglSharedContext = 0;
     // iOS needs to created frame buffer and attach color/depth/stencil buffer.
-    uint _defaultFBO                = 0;
     uint _defaultColorBuffer        = 0;
     uint _defaultDepthStencilBuffer = 0;
 #else
