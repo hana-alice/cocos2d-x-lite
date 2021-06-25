@@ -129,7 +129,8 @@ public:
     const vector<uint> *descriptorIndices = nullptr;
 };
 
-constexpr size_t chunkSize = 16 * 1024 * 1024; // 16M per block by default
+constexpr size_t toMegaBytes = 1024 * 1024;
+constexpr uint8_t maxChunkSizeMB = 128;
 class CCMTLGPUStagingBufferPool : public Object {
 public:
     CCMTLGPUStagingBufferPool(id<MTLDevice> device)
@@ -159,23 +160,31 @@ public:
         for (size_t idx = 0; idx < bufferCount; idx++) {
             auto *cur = &_pool[idx];
             offset = mu::alignUp(cur->curOffset, alignment);
-            if (gpuBuffer->size + offset <= chunkSize) {
+            if (gpuBuffer->size + offset <= [cur->mtlBuffer length]) {
                 buffer = cur;
                 break;
             }
         }
         if (!buffer) {
+            uint mbNeeds = gpuBuffer->size / toMegaBytes;
+            mbNeeds = mu::min8BitsPOT(mbNeeds, maxChunkSizeMB);
+#ifdef CC_DEBUG
+            float realNeedsMB = gpuBuffer->size / (float)toMegaBytes;
+            if(mbNeeds < realNeedsMB) {
+                CC_LOG_INFO("buffer requested more than max chunk size! maxsize: %dMB, requested: %dMB", maxChunkSizeMB, realNeedsMB);
+            }
+#endif
             _pool.resize(bufferCount + 1);
             buffer = &_pool.back();
             if (_tripleEnabled) {
                 for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
                     // Create a new buffer with enough capacity to store one instance of the dynamic buffer data
-                    id<MTLBuffer> dataBuffer = [_device newBufferWithLength:chunkSize options:MTLResourceStorageModeShared];
+                    id<MTLBuffer> dataBuffer = [_device newBufferWithLength:mbNeeds * toMegaBytes options:MTLResourceStorageModeShared];
                     buffer->dynamicDataBuffers[i] = dataBuffer;
                 }
                 buffer->mtlBuffer = buffer->dynamicDataBuffers[0];
             } else {
-                buffer->mtlBuffer = [_device newBufferWithLength:chunkSize options:MTLResourceStorageModeShared];
+                buffer->mtlBuffer = [_device newBufferWithLength:mbNeeds * toMegaBytes options:MTLResourceStorageModeShared];
             }
             buffer->mappedData = (uint8_t *)buffer->mtlBuffer.contents;
             offset = 0;

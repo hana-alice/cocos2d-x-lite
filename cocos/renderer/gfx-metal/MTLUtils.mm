@@ -1643,5 +1643,15 @@ void mu::clearUtilResource() {
     }
 }
 
+uint8_t mu::min8BitsPOT(uint8_t N, uint8_t MAX) {
+    if(N == 0)
+        return 1;
+    uint8_t n = N - 1;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    return n > MAX ? MAX : n + 1;
+}
+
 } // namespace gfx
 } // namespace cc

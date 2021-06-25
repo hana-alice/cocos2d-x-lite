@@ -100,6 +100,11 @@ bool isSamplerDescriptorCompareFunctionSupported(uint family);
 void clearRenderArea(CCMTLDevice *device, id<MTLCommandBuffer> commandBuffer, RenderPass *renderPass, const Rect &renderArea, const Color *colors, float depth, uint stencil);
 CC_INLINE uint alignUp(uint inSize, uint align) { return ((inSize + align - 1) / align) * align; }
 void clearUtilResource();
+
+// N : request size
+// MAX : upper limit
+// return number X, while k ∈ uint, 2^k < N < 2^(k+1), X = 2^(k+1) or X = MAX .
+uint8_t min8BitsPOT(uint8_t N, uint8_t MAX = 128);
 } // namespace mu
 
 } // namespace gfx
