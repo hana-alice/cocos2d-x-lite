@@ -288,8 +288,8 @@ TextureBarrier *DeviceAgent::createTextureBarrier() {
 }
 
 void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *dst, const BufferTextureCopy *regions, uint count) {
-    auto actorRegions = std::shared_ptr<BufferTextureCopy>(static_cast<BufferTextureCopy*>(malloc(count * sizeof(BufferTextureCopy))), free);
-    memcpy(actorRegions.get(), regions, count * sizeof(BufferTextureCopy));
+    auto *actorRegions = static_cast<BufferTextureCopy*>(malloc(count * sizeof(BufferTextureCopy)));
+    memcpy(actorRegions, regions, count * sizeof(BufferTextureCopy));
 
     uint bufferCount = 0U;
     uint totalSize = 0U;
@@ -313,13 +313,13 @@ void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *d
     uint ptrCount = 0U;
     //linear allocated memory, pretend to be two-dimensional array.
     //  [[----buffer slice addr---][---data---][---data---]...[---data---]]
-    std::shared_ptr<uint8_t> data(static_cast<uint8_t*>(malloc(totalSize)), free);
+    auto *data = static_cast<uint8_t*>(malloc(totalSize));
     for (uint i = 0U, n = 0U; i < count; i++) {
         const BufferTextureCopy &region = regions[i];
         for (uint l = 0; l < region.texSubres.layerCount; l++) {
-            auto *dst = reinterpret_cast<uint8_t*>(data.get()) + bufferOffsets[i] + l * bufferSizes[i];
+            auto *dst = reinterpret_cast<uint8_t*>(data) + bufferOffsets[i] + l * bufferSizes[i];
             memcpy(dst, buffers[n], bufferSizes[i]);
-            *(reinterpret_cast<uint8_t**>(data.get()) + ptrCount) = dst;
+            *(reinterpret_cast<uint8_t**>(data) + ptrCount) = dst;
             ptrCount++;
         }
     }
@@ -332,7 +332,9 @@ void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *d
         regions, actorRegions,
         count, count,
         {
-            actor->copyBuffersToTexture(reinterpret_cast<const uint8_t *const *>(buffers.get()), dst, reinterpret_cast<BufferTextureCopy*>(regions.get()), count);
+            actor->copyBuffersToTexture(reinterpret_cast<const uint8_t *const *>(buffers), dst, reinterpret_cast<BufferTextureCopy*>(regions), count);
+            free(buffers);
+            free(regions);
         });
 }
 

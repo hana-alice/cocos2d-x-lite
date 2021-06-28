@@ -131,7 +131,6 @@ public:
 };
 
 constexpr size_t MegaBytesToBytes = 1024 * 1024;
-//constexpr uint8_t maxChunkSizeMB = 128;
 class CCMTLGPUStagingBufferPool : public Object {
 public:
     CCMTLGPUStagingBufferPool(id<MTLDevice> device)
@@ -170,7 +169,7 @@ public:
             uint mbNeeds = mu::roundUp(gpuBuffer->size, MegaBytesToBytes);
             mbNeeds = cc::utils::nextPOT(mbNeeds);
 #ifdef CC_DEBUG
-            float realNeeds = gpuBuffer->size / (float)MegaBytesToBytes;
+            float realNeeds = gpuBuffer->size / static_cast<float>(MegaBytesToBytes);
             assert(mbNeeds > realNeeds);
 #endif
             _pool.resize(bufferCount + 1);
