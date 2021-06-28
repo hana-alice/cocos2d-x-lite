@@ -288,35 +288,51 @@ TextureBarrier *DeviceAgent::createTextureBarrier() {
 }
 
 void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *dst, const BufferTextureCopy *regions, uint count) {
-    LinearAllocatorPool *allocator = getMainAllocator();
-
-    auto *actorRegions = allocator->allocate<BufferTextureCopy>(count);
-    memcpy(actorRegions, regions, count * sizeof(BufferTextureCopy));
+    auto actorRegions = std::shared_ptr<BufferTextureCopy>(static_cast<BufferTextureCopy*>(malloc(count * sizeof(BufferTextureCopy))));
+    memcpy(actorRegions.get(), regions, count * sizeof(BufferTextureCopy));
 
     uint bufferCount = 0U;
+    uint totalSize = 0U;
+    uint offset = 0;
+    std::vector<uint> bufferOffsets;
+    std::vector<uint> bufferSizes;
+    bufferOffsets.resize(count);
+    bufferSizes.resize(count);
     for (uint i = 0U; i < count; i++) {
+        bufferOffsets[i] = offset;
         bufferCount += regions[i].texSubres.layerCount;
-    }
-    const auto **actorBuffers = allocator->allocate<const uint8_t *>(bufferCount);
-    for (uint i = 0U, n = 0U; i < count; i++) {
         const BufferTextureCopy &region = regions[i];
         uint                     size   = formatSize(dst->getFormat(), region.texExtent.width, region.texExtent.height, 1);
+        bufferSizes[i] = size;
+        totalSize += regions[i].texSubres.layerCount * (sizeof(uint8_t*) + sizeof(uint8_t) * size);
+        offset += size * sizeof(uint8_t);
+    }
+    
+    std::transform(bufferOffsets.begin(), bufferOffsets.end(), bufferOffsets.begin(), [bufferCount](uint& val){return val + bufferCount * sizeof(uint8_t*);});
+    
+    uint ptrCount = 0U;
+    //linear allocated memory, pretend to be two-dimensional array.
+    //  [[----buffer slice addr---][---data---][---data---]...[---data---]]
+    std::shared_ptr<uint8_t> data(static_cast<uint8_t*>(malloc(totalSize)));
+    for (uint i = 0U, n = 0U; i < count; i++) {
+        const BufferTextureCopy &region = regions[i];
         for (uint l = 0; l < region.texSubres.layerCount; l++) {
-            auto *buffer = allocator->allocate<uint8_t>(size);
-            memcpy(buffer, buffers[n], size);
-            actorBuffers[n++] = buffer;
+            auto *dst = reinterpret_cast<uint8_t*>(data.get()) + bufferOffsets[i] + l * bufferSizes[i];
+            memcpy(dst, buffers[n], bufferSizes[i]);
+            *(reinterpret_cast<uint8_t**>(data.get()) + ptrCount) = dst;
+            ptrCount++;
         }
     }
 
     ENQUEUE_MESSAGE_5(
         _mainMessageQueue, DeviceCopyBuffersToTexture,
         actor, getActor(),
-        buffers, actorBuffers,
+        buffers, data,
         dst, static_cast<TextureAgent *>(dst)->getActor(),
         regions, actorRegions,
         count, count,
         {
-            actor->copyBuffersToTexture(buffers, dst, regions, count);
+            actor->copyBuffersToTexture(reinterpret_cast<const uint8_t *const *>(buffers.get()), dst, reinterpret_cast<BufferTextureCopy*>(regions.get()), count);
         });
 }
 
