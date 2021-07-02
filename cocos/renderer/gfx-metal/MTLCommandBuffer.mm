@@ -127,6 +127,9 @@ void CCMTLCommandBuffer::beginRenderPass(RenderPass *renderPass, Framebuffer *fb
     if (_isSecondary) {
         return;
     }
+    _curRenderPass = renderPass;
+    _curFBO = fbo;
+    _curSubpassIndex = 0;
 
     auto *ccMtlRenderPass = static_cast<CCMTLRenderPass *>(renderPass);
     auto  isOffscreen     = static_cast<CCMTLFramebuffer *>(fbo)->isOffscreen();
@@ -137,8 +140,11 @@ void CCMTLCommandBuffer::beginRenderPass(RenderPass *renderPass, Framebuffer *fb
         ccMtlRenderPass->setDepthStencilAttachment(dssTex, 0);
     } else {
         const TextureList &colorTextures = fbo->getColorTextures();
-        for (uint i = 0; i < colorTextures.size(); i++) {
-            auto *ccMtlTexture = static_cast<CCMTLTexture *>(colorTextures[i]);
+        id<CAMetalDrawable> drawable = (id<CAMetalDrawable>)_mtlDevice->getCurrentDrawable();
+        id<MTLTexture>      dssTex   = (id<MTLTexture>)_mtlDevice->getDSSTexture();
+        ccMtlRenderPass->setColorAttachment(0, drawable.texture, 0);
+        for (uint i = 1; i <= colorTextures.size(); i++) {
+            auto *ccMtlTexture = static_cast<CCMTLTexture *>(colorTextures[i - 1]);
             ccMtlRenderPass->setColorAttachment(i, ccMtlTexture->getMTLTexture(), 0);
         }
 
@@ -149,19 +155,21 @@ void CCMTLCommandBuffer::beginRenderPass(RenderPass *renderPass, Framebuffer *fb
         }
     }
     MTLRenderPassDescriptor *mtlRenderPassDescriptor = static_cast<CCMTLRenderPass *>(renderPass)->getMTLRenderPassDescriptor();
-    if (!isRenderingEntireDrawable(renderArea, static_cast<CCMTLRenderPass *>(renderPass))) {
+    if (0) {
         //Metal doesn't apply the viewports and scissors to renderpass load-action clearing.
         mu::clearRenderArea(_mtlDevice, _mtlCommandBuffer, renderPass, renderArea, colors, depth, stencil);
     } else {
         const auto &colorAttachments     = renderPass->getColorAttachments();
         const auto  colorAttachmentCount = colorAttachments.size();
-        for (size_t slot = 0U; slot < colorAttachmentCount; slot++) {
-            mtlRenderPassDescriptor.colorAttachments[slot].clearColor = mu::toMTLClearColor(colors[slot]);
-            mtlRenderPassDescriptor.colorAttachments[slot].loadAction = colorAttachments[slot].loadOp == LoadOp::CLEAR ? MTLLoadActionClear : MTLLoadActionLoad;
+        mtlRenderPassDescriptor.colorAttachments[0].clearColor = mu::toMTLClearColor(colors[0]);
+        mtlRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;//mu::toMTLLoadAction(colorAttachments[slot - 1].loadOp); //colorAttachments[slot].loadOp == LoadOp::CLEAR ? MTLLoadActionClear : MTLLoadActionLoad;
+        mtlRenderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;//mu::toMTLStoreAction(colorAttachments[slot - 1].storeOp);
+        for (size_t slot = 1U; slot <= colorAttachmentCount; slot++) {
+            mtlRenderPassDescriptor.colorAttachments[slot].clearColor = mu::toMTLClearColor(colors[slot - 1]);
+            mtlRenderPassDescriptor.colorAttachments[slot].loadAction = mu::toMTLLoadAction(colorAttachments[slot - 1].loadOp); //colorAttachments[slot].loadOp == LoadOp::CLEAR ? MTLLoadActionClear : MTLLoadActionLoad;
+            mtlRenderPassDescriptor.colorAttachments[slot].storeAction = MTLStoreActionStore;//mu::toMTLStoreAction(colorAttachments[slot - 1].storeOp);
         }
-        //Metal limits clearDepth at range [0.0, 1.0]
-        //to keep consistent with OpenGL, assume passed value ranges in [-1, 1];
-        depth                                                  = clampf(depth / 2 + 0.5f, 0.0f, 1.0f);
+        
         mtlRenderPassDescriptor.depthAttachment.clearDepth     = depth;
         mtlRenderPassDescriptor.stencilAttachment.clearStencil = stencil;
     }
@@ -196,6 +204,8 @@ void CCMTLCommandBuffer::endRenderPass() {
     } else {
         _renderEncoder.endEncoding();
     }
+    _curRenderPass = nullptr;
+    _curFBO = nullptr;
 }
 
 void CCMTLCommandBuffer::bindPipelineState(PipelineState *pso) {
@@ -280,6 +290,15 @@ void CCMTLCommandBuffer::setStencilCompareMask(StencilFace /*face*/, uint /*ref*
 }
 
 void CCMTLCommandBuffer::nextSubpass() {
+    if(_curRenderPass) {
+        _curSubpassIndex++;
+        const TextureList &colorTextures = _curFBO->getColorTextures();
+
+        for (uint i = 1; i <= colorTextures.size(); i++) {
+            auto* tex = static_cast<CCMTLTexture*>(colorTextures[i-1]);
+            _renderEncoder.setFragmentTexture(tex->getMTLTexture(), i);
+        }
+    }
 }
 
 void CCMTLCommandBuffer::draw(const DrawInfo &info) {

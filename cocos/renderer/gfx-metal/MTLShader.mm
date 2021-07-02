@@ -84,7 +84,7 @@ bool CCMTLShader::createMTLFunction(const ShaderStage &stage) {
     if (stage.stage == ShaderStageFlagBit::VERTEX) {
         isVertexShader = true;
     } else if (stage.stage == ShaderStageFlagBit::FRAGMENT) {
-        isFragmentShader = true;
+        isFragmentShader = true;        
     } else if (stage.stage == ShaderStageFlagBit::COMPUTE) {
         isComputeShader = true;
     }
@@ -96,11 +96,15 @@ bool CCMTLShader::createMTLFunction(const ShaderStage &stage) {
                                                CCMTLDevice::getInstance(),
                                                _gpuShader);
 
+    NSString * rawSrc = [NSString stringWithUTF8String:stage.source.c_str()];
     NSString *     shader  = [NSString stringWithUTF8String:mtlShader.c_str()];
     NSError *      error   = nil;
+    MTLCompileOptions *opts = [[MTLCompileOptions alloc] init];;
+    opts.languageVersion = MTLLanguageVersion2_3;
     id<MTLLibrary> library = [mtlDevice newLibraryWithSource:shader
-                                                     options:nil
+                                                     options:opts
                                                        error:&error];
+    [opts release];
     if (!library) {
         CC_LOG_ERROR("Can not compile %s shader: %s", isVertexShader ? "vertex" : isFragmentShader ? "fragment"
                                                                                                    : "compute",
@@ -197,6 +201,7 @@ void CCMTLShader::setAvailableBufferBindingIndex() {
             _availableFragmentBufferBindingIndex[j++] = theBit;
         }
     }
+    _samplers.push_back({});
 }
 
 } // namespace gfx

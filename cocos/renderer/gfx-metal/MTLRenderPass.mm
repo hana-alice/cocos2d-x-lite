@@ -37,10 +37,16 @@ CCMTLRenderPass::CCMTLRenderPass() : RenderPass() {
 }
 
 void CCMTLRenderPass::doInit(const RenderPassInfo &info) {
-    _renderTargetSizes.resize(_colorAttachments.size());
+    _renderTargetSizes.resize(_colorAttachments.size() + 1);
     _mtlRenderPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
+    
+//    size_t maxAttachments = 1;
+//    for (const auto& subpass : info.subpasses) {
+//        size_t maxAttachments = std::max(subpass.inputs.size(), maxAttachments);
+//    }
 
-    uint i = 0;
+    // [color[0]] is always reserved for default output texture(drawable maybe) when subpass triggered.
+    uint i = info.subpasses.empty() ? 0 : 1;
     for (const auto &colorAttachment : _colorAttachments) {
         _mtlRenderPassDescriptor.colorAttachments[i].loadAction = mu::toMTLLoadAction(colorAttachment.loadOp);
         _mtlRenderPassDescriptor.colorAttachments[i].storeAction = mu::toMTLStoreAction(colorAttachment.storeOp);
@@ -73,8 +79,11 @@ void CCMTLRenderPass::setColorAttachment(size_t slot, id<MTLTexture> texture, in
     }
 
     _mtlRenderPassDescriptor.colorAttachments[slot].texture = texture;
-    _mtlRenderPassDescriptor.colorAttachments[slot].level = level;
-    _renderTargetSizes[slot] = {static_cast<float>(texture.width), static_cast<float>(texture.height)};
+    if(texture) {
+        _mtlRenderPassDescriptor.colorAttachments[slot].level = level;
+        _renderTargetSizes[slot] = {static_cast<float>(texture.width), static_cast<float>(texture.height)};
+    }
+    
 }
 
 void CCMTLRenderPass::setDepthStencilAttachment(id<MTLTexture> texture, int level) {

@@ -242,10 +242,10 @@ public:
     }
 
     void setFragmentTexture(const id<MTLTexture> texture, uint index) {
-        if (_fragmentTextureMap.count(index) > 0 && (texture == _fragmentTextureMap[index]))
-            return;
-
-        _fragmentTextureMap[index] = texture;
+//        if (_fragmentTextureMap.count(index) > 0 && (texture == _fragmentTextureMap[index]))
+//            return;
+//
+//        _fragmentTextureMap[index] = texture;
         [_mtlEncoder setFragmentTexture:texture atIndex:index];
     }
 

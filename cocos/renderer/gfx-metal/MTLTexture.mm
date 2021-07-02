@@ -108,7 +108,7 @@ bool CCMTLTexture::createMTLTexture() {
     if (descriptor == nullptr)
         return false;
 
-    descriptor.usage = mu::toMTLTextureUsage(_usage);
+    descriptor.usage = mu::toMTLTextureUsage(_usage) | MTLTextureUsageShaderRead;
     descriptor.textureType = mu::toMTLTextureType(_type);
     descriptor.sampleCount = mu::toMTLSampleCount(_samples);
     descriptor.mipmapLevelCount = _levelCount;
@@ -117,7 +117,9 @@ bool CCMTLTexture::createMTLTexture() {
         hasFlag(_usage, TextureUsage::DEPTH_STENCIL_ATTACHMENT) ||
         hasFlag(_usage, TextureUsage::INPUT_ATTACHMENT)) {
         descriptor.resourceOptions = MTLResourceStorageModePrivate;
+        //descriptor.storageMode = MTLStorageModeMemoryless;
     }
+    
 
     id<MTLDevice> mtlDevice = id<MTLDevice>(CCMTLDevice::getInstance()->getMTLDevice());
     _mtlTexture = [mtlDevice newTextureWithDescriptor:descriptor];

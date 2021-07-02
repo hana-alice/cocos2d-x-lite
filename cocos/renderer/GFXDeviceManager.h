@@ -96,11 +96,11 @@ private:
         Device *device = CC_NEW(DeviceCtor);
 
         if (DETACH_DEVICE_THREAD) {
-            device = CC_NEW(gfx::DeviceAgent(device));
+            //device = CC_NEW(gfx::DeviceAgent(device));
         }
 
         if (CC_DEBUG > 0 && !FORCE_DISABLE_VALIDATION || FORCE_ENABLE_VALIDATION) {
-            device = CC_NEW(gfx::DeviceValidator(device));
+            //device = CC_NEW(gfx::DeviceValidator(device));
         }
 
         if (!device->initialize(info)) {

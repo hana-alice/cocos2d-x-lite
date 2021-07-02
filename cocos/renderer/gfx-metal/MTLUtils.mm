@@ -108,7 +108,6 @@ const vector<unsigned int> GLSL2SPIRV(ShaderStageFlagBit type, const String &sou
         CC_LOG_ERROR("%s", string);
         return spirv;
     }
-
     glslang::TProgram program;
     program.addShader(&shader);
 
@@ -891,7 +890,7 @@ String mu::compileGLSLShader2Msl(const String &src,
     const auto &spv = GLSL2SPIRV(shaderType, shaderSource);
     if (spv.size() == 0)
         return "";
-
+    
     spirv_cross::CompilerMSL msl(std::move(spv));
 
     // The SPIR-V is now parsed, and we can perform reflection on it.
@@ -988,8 +987,35 @@ String mu::compileGLSLShader2Msl(const String &src,
             samplerIndex++;
         }
     }
+    
+    if(executionModel == spv::ExecutionModelFragment && resources.stage_outputs.size() > 1) {
+        // msl: [color[0]] is always reserved for unspecified output target
+        // we engine: even in pre-subpass
+        for(size_t i = 0; i < resources.stage_outputs.size(); i++) {
+            const auto& stageOutput = resources.stage_outputs[i];
+            auto binding = msl.get_decoration(stageOutput.id, spv::DecorationLocation);
+            msl.set_decoration(stageOutput.id, spv::DecorationLocation, i + 1);
+        }
+    }
+    
+    gpuShader->subpassInputs.resize(resources.subpass_inputs.size());
+    for(size_t i = 0; i < resources.subpass_inputs.size(); i++) {
+        const auto& attachment = resources.subpass_inputs[i];
+        gpuShader->subpassInputs[i].name = attachment.name;
+        auto set = msl.get_decoration(attachment.id, spv::DecorationDescriptorSet);
+        auto binding = msl.get_decoration(attachment.id, spv::DecorationBinding);
+        msl.set_decoration(attachment.id, spv::DecorationInputAttachmentIndex,binding);
+        gpuShader->subpassInputs[i].set = set;
+        gpuShader->subpassInputs[i].binding = binding;
+        
+        //msl.set_subpass_input_remapped_components(attachment.id, 2);
+    }
+    
     // Set some options.
     spirv_cross::CompilerMSL::Options options;
+    //options.use_framebuffer_fetch_subpasses = true;
+    options.set_msl_version(2, 3, 0);
+    options.enable_decoration_binding = true;
     //    options.set_msl_version(2, 0);
     #if (CC_PLATFORM == CC_PLATFORM_MAC_IOS)
     options.platform = spirv_cross::CompilerMSL::Options::Platform::iOS;
