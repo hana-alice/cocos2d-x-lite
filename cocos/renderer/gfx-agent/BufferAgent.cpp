@@ -95,17 +95,20 @@ void BufferAgent::doDestroy() {
 }
 
 void BufferAgent::update(const void *buffer, uint size) {
-    auto *actorBuffer = DeviceAgent::getInstance()->getMainAllocator()->allocate<uint8_t>(size);
+    auto *allocator = CC_NEW(ThreadSafeLinearAllocator(size));
+    auto *actorBuffer = allocator->allocate<uint8_t>(size);
     memcpy(actorBuffer, buffer, size);
 
-    ENQUEUE_MESSAGE_3(
+    ENQUEUE_MESSAGE_4(
         DeviceAgent::getInstance()->getMessageQueue(),
         BufferUpdate,
         actor, getActor(),
         buffer, actorBuffer,
         size, size,
+        allocator,allocator,
         {
             actor->update(buffer, size);
+            CC_DELETE(allocator);
         });
 }
 

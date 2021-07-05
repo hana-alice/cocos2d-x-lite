@@ -74,8 +74,8 @@ void QueueAgent::doDestroy() {
 void QueueAgent::submit(CommandBuffer *const *cmdBuffs, uint count) {
     if (!count) return;
 
-    LinearAllocatorPool *allocator     = DeviceAgent::getInstance()->getMainAllocator();
-    auto **              actorCmdBuffs = allocator->allocate<CommandBuffer *>(count);
+    MessageQueue *msgQ = DeviceAgent::getInstance()->getMessageQueue();
+    auto **actorCmdBuffs = msgQ->allocate<CommandBuffer *>(count);
     for (uint i = 0U; i < count; ++i) {
         actorCmdBuffs[i] = static_cast<CommandBufferAgent *>(cmdBuffs[i])->getActor();
     }

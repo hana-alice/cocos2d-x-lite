@@ -96,7 +96,6 @@ public:
     void setMultithreaded(bool multithreaded);
 
     inline MessageQueue *       getMessageQueue() const { return _mainMessageQueue; }
-    inline LinearAllocatorPool *getMainAllocator() const { return _allocatorPools[_currentIndex]; }
 
 protected:
     static DeviceAgent *instance;
