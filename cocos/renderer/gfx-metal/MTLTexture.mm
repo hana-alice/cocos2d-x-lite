@@ -108,7 +108,7 @@ bool CCMTLTexture::createMTLTexture() {
     if (descriptor == nullptr)
         return false;
 
-    descriptor.usage = mu::toMTLTextureUsage(_usage) | MTLTextureUsageShaderRead;
+    descriptor.usage = mu::toMTLTextureUsage(_usage) | MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
     descriptor.textureType = mu::toMTLTextureType(_type);
     descriptor.sampleCount = mu::toMTLSampleCount(_samples);
     descriptor.mipmapLevelCount = _levelCount;
