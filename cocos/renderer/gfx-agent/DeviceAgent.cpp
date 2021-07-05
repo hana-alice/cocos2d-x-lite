@@ -288,7 +288,8 @@ TextureBarrier *DeviceAgent::createTextureBarrier() {
 }
 
 void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *dst, const BufferTextureCopy *regions, uint count) {
-    auto *actorRegions = static_cast<BufferTextureCopy*>(malloc(count * sizeof(BufferTextureCopy)));
+    ThreadSafeLinearAllocator *regionAllocator = CC_NEW(ThreadSafeLinearAllocator(static_cast<uint32_t>(count * sizeof(BufferTextureCopy))));
+    auto *actorRegions = regionAllocator->getBuffer();
     memcpy(actorRegions, regions, count * sizeof(BufferTextureCopy));
 
     uint bufferCount = 0U;
@@ -310,10 +311,11 @@ void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *d
     
     std::transform(bufferOffsets.begin(), bufferOffsets.end(), bufferOffsets.begin(), [bufferCount](uint& val){return val + bufferCount * sizeof(uint8_t*);});
     
+    ThreadSafeLinearAllocator *dataAllocator = CC_NEW(ThreadSafeLinearAllocator(totalSize));
     uint ptrCount = 0U;
     //linear allocated memory, pretend to be two-dimensional array.
     //  [[----buffer slice addr---][---data---][---data---]...[---data---]]
-    auto *data = static_cast<uint8_t*>(malloc(totalSize));
+    auto *data = dataAllocator->getBuffer();
     for (uint i = 0U, n = 0U; i < count; i++) {
         const BufferTextureCopy &region = regions[i];
         for (uint l = 0; l < region.texSubres.layerCount; l++) {
@@ -327,14 +329,14 @@ void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *d
     ENQUEUE_MESSAGE_5(
         _mainMessageQueue, DeviceCopyBuffersToTexture,
         actor, getActor(),
-        buffers, data,
+        data, dataAllocator,
         dst, static_cast<TextureAgent *>(dst)->getActor(),
-        regions, actorRegions,
+        regions, regionAllocator,
         count, count,
         {
-            actor->copyBuffersToTexture(reinterpret_cast<const uint8_t *const *>(buffers), dst, reinterpret_cast<BufferTextureCopy*>(regions), count);
-            free(buffers);
-            free(regions);
+            actor->copyBuffersToTexture(reinterpret_cast<const uint8_t *const *>(data->getBuffer()), dst, reinterpret_cast<BufferTextureCopy*>(regions->getBuffer()), count);
+            CC_DELETE(regions);
+            CC_DELETE(data);
         });
 }
 
@@ -342,8 +344,9 @@ void DeviceAgent::flushCommands(CommandBuffer *const *cmdBuffs, uint count) {
     if (!_multithreaded) return; // all command buffers are immediately executed
 
     bool multiThreaded = hasFeature(Feature::MULTITHREADED_SUBMISSION);
-
-    auto **agentCmdBuffs = getMainAllocator()->allocate<CommandBufferAgent *>(count);
+    
+    auto *cmdAllocator = CC_NEW(ThreadSafeLinearAllocator(count * sizeof(CommandBufferAgent*)));
+    auto **agentCmdBuffs =  reinterpret_cast<CommandBufferAgent **>(cmdAllocator->getBuffer());
     for (uint i = 0; i < count; ++i) {
         agentCmdBuffs[i] = static_cast<CommandBufferAgent *const>(cmdBuffs[i]);
         MessageQueue::freeChunksInFreeQueue(agentCmdBuffs[i]->_messageQueue);
@@ -353,10 +356,11 @@ void DeviceAgent::flushCommands(CommandBuffer *const *cmdBuffs, uint count) {
     ENQUEUE_MESSAGE_3(
         _mainMessageQueue, DeviceFlushCommands,
         count, count,
-        cmdBuffs, agentCmdBuffs,
+        cmdBuffs, cmdAllocator,
         multiThreaded, multiThreaded,
         {
-            CommandBufferAgent::flushCommands(count, cmdBuffs, multiThreaded);
+            CommandBufferAgent::flushCommands(count, reinterpret_cast<CommandBufferAgent**>(cmdBuffs->getBuffer()), multiThreaded);
+            CC_DELETE(cmdBuffs);
         });
 }
 
