@@ -288,7 +288,7 @@ TextureBarrier *DeviceAgent::createTextureBarrier() {
 }
 
 void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *dst, const BufferTextureCopy *regions, uint count) {
-    ThreadSafeLinearAllocator *regionAllocator = CC_NEW(ThreadSafeLinearAllocator(static_cast<uint32_t>(count * sizeof(BufferTextureCopy))));
+    auto *regionAllocator = CC_NEW(ThreadSafeLinearAllocator(static_cast<uint32_t>(count * sizeof(BufferTextureCopy))));
     auto *actorRegions = regionAllocator->getBuffer();
     memcpy(actorRegions, regions, count * sizeof(BufferTextureCopy));
 
@@ -311,7 +311,7 @@ void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *d
     
     std::transform(bufferOffsets.begin(), bufferOffsets.end(), bufferOffsets.begin(), [bufferCount](uint& val){return val + bufferCount * sizeof(uint8_t*);});
     
-    ThreadSafeLinearAllocator *dataAllocator = CC_NEW(ThreadSafeLinearAllocator(totalSize));
+    auto *dataAllocator = CC_NEW(ThreadSafeLinearAllocator(totalSize));
     uint ptrCount = 0U;
     //linear allocated memory, pretend to be two-dimensional array.
     //  [[----buffer slice addr---][---data---][---data---]...[---data---]]
@@ -345,7 +345,7 @@ void DeviceAgent::flushCommands(CommandBuffer *const *cmdBuffs, uint count) {
 
     bool multiThreaded = hasFeature(Feature::MULTITHREADED_SUBMISSION);
     
-    auto *cmdAllocator = CC_NEW(ThreadSafeLinearAllocator(count * sizeof(CommandBufferAgent*)));
+    auto *cmdAllocator = CC_NEW(ThreadSafeLinearAllocator(count * sizeof(void*)));
     auto **agentCmdBuffs =  reinterpret_cast<CommandBufferAgent **>(cmdAllocator->getBuffer());
     for (uint i = 0; i < count; ++i) {
         agentCmdBuffs[i] = static_cast<CommandBufferAgent *const>(cmdBuffs[i]);
