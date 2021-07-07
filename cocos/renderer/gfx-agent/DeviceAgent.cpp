@@ -24,7 +24,6 @@
 ****************************************************************************/
 
 #include "base/CoreStd.h"
-#include "base/LinearAllocatorPool.h"
 #include "base/threading/MessageQueue.h"
 
 #include "BufferAgent.h"
@@ -145,10 +144,6 @@ void DeviceAgent::present() {
     _mainMessageQueue->finishWriting();
     _currentIndex = (_currentIndex + 1) % (MAX_CPU_FRAME_AHEAD + 1);
     _frameBoundarySemaphore.wait();
-
-    for (CommandBufferAgent *cmdBuff : _cmdBuffRefs) {
-        cmdBuff->_allocatorPools[_currentIndex]->reset();
-    }
 }
 
 void DeviceAgent::setMultithreaded(bool multithreaded) {

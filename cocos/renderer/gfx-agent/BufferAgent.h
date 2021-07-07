@@ -31,6 +31,7 @@
 namespace cc {
 
 class ThreadSafeLinearAllocator;
+class MessageQueue;
 
 namespace gfx {
 
@@ -40,6 +41,8 @@ public:
     ~BufferAgent() override;
 
     void update(const void *buffer, uint size) override;
+    
+    void update(const void *buffer, uint size, MessageQueue* msgQ);
 
 protected:
     void doInit(const BufferInfo &info) override;

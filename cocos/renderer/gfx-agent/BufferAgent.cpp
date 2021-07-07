@@ -24,7 +24,7 @@
 ****************************************************************************/
 
 #include "base/CoreStd.h"
-#include "base/LinearAllocatorPool.h"
+#include "base/threading/ThreadSafeLinearAllocator.h"
 #include "base/threading/MessageQueue.h"
 
 #include "BufferAgent.h"
@@ -124,6 +124,10 @@ void BufferAgent::doDestroy() {
 }
 
 void BufferAgent::update(const void *buffer, uint size) {
+    update(buffer, size, DeviceAgent::getInstance()->getMessageQueue());
+}
+
+void BufferAgent::update(const void *buffer, uint size, MessageQueue* dstMsgQ) {
     ThreadSafeLinearAllocator *allocator = nullptr;
     uint8_t *actorBuffer = nullptr;
     
@@ -146,7 +150,7 @@ void BufferAgent::update(const void *buffer, uint size) {
     }
 
     ENQUEUE_MESSAGE_4(
-        DeviceAgent::getInstance()->getMessageQueue(),
+        dstMsgQ,
         BufferUpdate,
         actor, getActor(),
         buffer, actorBuffer,
