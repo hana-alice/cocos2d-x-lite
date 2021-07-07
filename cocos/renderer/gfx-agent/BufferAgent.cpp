@@ -51,8 +51,8 @@ BufferAgent::~BufferAgent() {
 void BufferAgent::doInit(const BufferInfo &info) {
     uint size = getSize();
     if(size > MessageQueue::getChunckSize() / 2) {
-        for (size_t i = 0; i < MAX_CPU_FRAME_AHEAD + 1; i++) {
-            _allocator[i] = CC_NEW(ThreadSafeLinearAllocator(size));
+        for (auto &allocator : _allocator) {
+            allocator = CC_NEW(ThreadSafeLinearAllocator(size));
         }
     }
     
@@ -72,8 +72,8 @@ void BufferAgent::doInit(const BufferViewInfo &info) {
     
     uint size = getSize();
     if(size > MessageQueue::getChunckSize() / 2) {
-        for (size_t i = 0; i < MAX_CPU_FRAME_AHEAD + 1; i++) {
-            _allocator[i] = CC_NEW(ThreadSafeLinearAllocator(size));
+        for (auto &allocator : _allocator) {
+            allocator = CC_NEW(ThreadSafeLinearAllocator(size));
         }
     }
 
@@ -90,12 +90,12 @@ void BufferAgent::doInit(const BufferViewInfo &info) {
 void BufferAgent::doResize(uint size, uint /*count*/) {
     uint originalSize = getSize();
     if(size > originalSize && size > MessageQueue::getChunckSize() / 2) {
-        for (size_t i = 0; i < MAX_CPU_FRAME_AHEAD + 1; i++) {
-            CC_SAFE_DELETE(_allocator[i]);
+        for (auto &allocator : _allocator) {
+            CC_SAFE_DELETE(allocator);
         }
         
-        for (size_t i = 0; i < MAX_CPU_FRAME_AHEAD + 1; i++) {
-            _allocator[i] = CC_NEW(ThreadSafeLinearAllocator(size));
+        for (auto &allocator : _allocator) {
+            allocator = CC_NEW(ThreadSafeLinearAllocator(size));
         }
     }
     
@@ -118,8 +118,8 @@ void BufferAgent::doDestroy() {
             actor->destroy();
         });
     
-    for (size_t i = 0; i < MAX_CPU_FRAME_AHEAD + 1; i++) {
-        CC_SAFE_DELETE(_allocator[i]);
+    for (auto &allocator : _allocator) {
+        CC_SAFE_DELETE(allocator);
     }
 }
 
