@@ -41,6 +41,10 @@ class CCMTLTexture;
 class CCMTLSampler;
 class CCMTLShader;
 
+namespace {
+    constexpr size_t MegaBytesToBytes = 1024 * 1024;
+}
+
 class CCMTLGPUDescriptorSetLayout : public Object {
 public:
     DescriptorSetLayoutBindingList bindings;
@@ -130,7 +134,6 @@ public:
     const vector<uint> *descriptorIndices = nullptr;
 };
 
-constexpr size_t MegaBytesToBytes = 1024 * 1024;
 class CCMTLGPUStagingBufferPool : public Object {
 public:
     CCMTLGPUStagingBufferPool(id<MTLDevice> device)

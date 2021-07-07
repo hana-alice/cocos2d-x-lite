@@ -50,7 +50,7 @@ BufferAgent::~BufferAgent() {
 
 void BufferAgent::doInit(const BufferInfo &info) {
     uint size = getSize();
-    if(size > MEMORY_CHUNK_SIZE / 2) {
+    if(size > MessageQueue::getChunckSize() / 2) {
         for (size_t i = 0; i < MAX_CPU_FRAME_AHEAD + 1; i++) {
             _allocator[i] = CC_NEW(ThreadSafeLinearAllocator(size));
         }
@@ -71,7 +71,7 @@ void BufferAgent::doInit(const BufferViewInfo &info) {
     actorInfo.buffer         = static_cast<BufferAgent *>(info.buffer)->getActor();
     
     uint size = getSize();
-    if(size > MEMORY_CHUNK_SIZE / 2) {
+    if(size > MessageQueue::getChunckSize() / 2) {
         for (size_t i = 0; i < MAX_CPU_FRAME_AHEAD + 1; i++) {
             _allocator[i] = CC_NEW(ThreadSafeLinearAllocator(size));
         }
@@ -89,7 +89,7 @@ void BufferAgent::doInit(const BufferViewInfo &info) {
 
 void BufferAgent::doResize(uint size, uint /*count*/) {
     uint originalSize = getSize();
-    if(size > originalSize && size > MEMORY_CHUNK_SIZE / 2) {
+    if(size > originalSize && size > MessageQueue::getChunckSize() / 2) {
         for (size_t i = 0; i < MAX_CPU_FRAME_AHEAD + 1; i++) {
             CC_SAFE_DELETE(_allocator[i]);
         }
@@ -133,7 +133,7 @@ void BufferAgent::update(const void *buffer, uint size, MessageQueue* dstMsgQ) {
     
     uint frameIndex = DeviceAgent::getInstance()->getCurrentIndex();
                                                                                 
-    bool useMsgQ = size <= MEMORY_CHUNK_SIZE / 2;                               // reserve half for message itself
+    bool useMsgQ = size <= MessageQueue::getChunckSize() / 2;                   // reserve half for message itself
     if (useMsgQ) {                                                              // buffer will be allocated by message queue if it could be put in,
         auto *msgQ = DeviceAgent::getInstance()->getMessageQueue();             // memory fragment can be avoid by mem pool inside
         actorBuffer = msgQ->allocate<uint8_t>(size);

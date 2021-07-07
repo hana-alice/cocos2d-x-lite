@@ -31,7 +31,6 @@
 
 namespace cc {
 
-static uint32_t constexpr MEMORY_CHUNK_SIZE               = 4096 * 16;
 // TODO(YunHsiao): thread-specific allocators
 template <typename T>
 inline T *memoryAllocateForMultiThread(uint32_t const count) noexcept {
@@ -94,6 +93,8 @@ public:
     MessageQueue(MessageQueue &&)      = delete;
     MessageQueue &operator=(MessageQueue const &) = delete;
     MessageQueue &operator=(MessageQueue &&) = delete;
+    
+    static uint32_t getChunckSize();
 
     // message allocation
     template <typename T>
