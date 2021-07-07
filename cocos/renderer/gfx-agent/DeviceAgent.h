@@ -37,7 +37,6 @@ namespace gfx {
 
 class CommandBuffer;
 class CommandBufferAgent;
-constexpr uint MAX_CPU_FRAME_AHEAD = 1U;
 
 class CC_DLL DeviceAgent final : public Agent<Device> {
 public:
@@ -92,6 +91,7 @@ public:
     uint             getNumInstances() const override { return _actor->getNumInstances(); }
     uint             getNumTris() const override { return _actor->getNumTris(); }
 
+    uint             getCurrentIndex() const { return _currentIndex; }
     void setMultithreaded(bool multithreaded);
 
     inline MessageQueue *       getMessageQueue() const { return _mainMessageQueue; }

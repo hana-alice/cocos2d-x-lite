@@ -29,6 +29,9 @@
 #include "gfx-base/GFXBuffer.h"
 
 namespace cc {
+
+class ThreadSafeLinearAllocator;
+
 namespace gfx {
 
 class CC_DLL BufferAgent final : public Agent<Buffer> {
@@ -43,6 +46,9 @@ protected:
     void doInit(const BufferViewInfo &info) override;
     void doResize(uint size, uint count) override;
     void doDestroy() override;
+    
+private:
+    ThreadSafeLinearAllocator* _allocator[MAX_CPU_FRAME_AHEAD + 1] = {nullptr, nullptr};
 };
 
 } // namespace gfx
