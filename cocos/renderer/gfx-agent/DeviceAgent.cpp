@@ -281,20 +281,8 @@ TextureBarrier *DeviceAgent::createTextureBarrier() {
 
 void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *dst, const BufferTextureCopy *regions, uint count) {
     uint bufferCount = 0U;
-    uint dataSize = 0U;
-    uint offset = 0;
-    std::vector<uint> bufferOffsets;
-    std::vector<uint> bufferSizes;
-    bufferOffsets.resize(count);
-    bufferSizes.resize(count);
     for (uint i = 0U; i < count; i++) {
-        bufferOffsets[i] = offset;
         bufferCount += regions[i].texSubres.layerCount;
-        const BufferTextureCopy &region = regions[i];
-        uint                     size   = formatSize(dst->getFormat(), region.texExtent.width, region.texExtent.height, 1);
-        bufferSizes[i] = size;
-        dataSize += regions[i].texSubres.layerCount * (sizeof(uint8_t*) + sizeof(uint8_t) * size);
-        offset += size * sizeof(uint8_t);
     }
     uint totalSize = sizeof(BufferTextureCopy) * count + sizeof(uint8_t *) * bufferCount;
     for (uint i = 0U, n = 0U; i < count; i++) {
@@ -338,7 +326,7 @@ void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *d
 void DeviceAgent::flushCommands(CommandBuffer *const *cmdBuffs, uint count) {
     if (!_multithreaded) return; // all command buffers are immediately executed
 
-    auto **agentCmdBuffs = _mainMessageQueue->allocate<CommandBufferAgent *>(count);
+    auto **agentCmdBuffs = getMessageQueue()->allocate<CommandBufferAgent *>(count);
 
     for (uint i = 0; i < count; ++i) {
         agentCmdBuffs[i] = static_cast<CommandBufferAgent *const>(cmdBuffs[i]);

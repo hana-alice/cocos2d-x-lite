@@ -95,9 +95,22 @@ void BufferAgent::doDestroy() {
 }
 
 void BufferAgent::update(const void *buffer, uint size) {
-    auto *allocator = CC_NEW(ThreadSafeLinearAllocator(size));
-    auto *actorBuffer = allocator->allocate<uint8_t>(size);
-    memcpy(actorBuffer, buffer, size);
+    union AllocatorWrapper{
+        MessageQueue* msgQ;
+        ThreadSafeLinearAllocator* linearAlloctor;
+    };
+    AllocatorWrapper aw;
+    uint8_t *actorBuffer = nullptr;
+    bool useMsgQ = size < MEMORY_CHUNK_SIZE;
+    if (useMsgQ) {
+        aw.msgQ = DeviceAgent::getInstance()->getMessageQueue();
+        actorBuffer = aw.msgQ->allocate<uint8_t>(size);
+        memcpy(actorBuffer, buffer, size);
+    } else {
+        aw.linearAlloctor = CC_NEW(ThreadSafeLinearAllocator(size));
+        actorBuffer = aw.linearAlloctor->allocate<uint8_t>(size);
+        memcpy(actorBuffer, buffer, size);
+    }
 
     ENQUEUE_MESSAGE_4(
         DeviceAgent::getInstance()->getMessageQueue(),
@@ -105,7 +118,7 @@ void BufferAgent::update(const void *buffer, uint size) {
         actor, getActor(),
         buffer, actorBuffer,
         size, size,
-        allocator,allocator,
+        allocator,useMsgQ ? nullptr : aw.linearAlloctor,
         {
             actor->update(buffer, size);
             CC_DELETE(allocator);

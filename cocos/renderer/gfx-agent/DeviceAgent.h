@@ -32,7 +32,6 @@
 namespace cc {
 
 class MessageQueue;
-class LinearAllocatorPool;
 
 namespace gfx {
 
@@ -115,7 +114,6 @@ protected:
     MessageQueue *_mainMessageQueue{nullptr};
 
     uint                          _currentIndex = 0U;
-    vector<LinearAllocatorPool *> _allocatorPools;
     Semaphore                     _frameBoundarySemaphore{MAX_CPU_FRAME_AHEAD};
 
     unordered_set<CommandBufferAgent *> _cmdBuffRefs;

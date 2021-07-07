@@ -30,7 +30,6 @@
 namespace cc {
 
 namespace {
-uint32_t constexpr MEMORY_CHUNK_SIZE               = 4096 * 16;
 uint32_t constexpr MEMORY_CHUNK_POOL_CAPACITY      = 64;
 uint32_t constexpr SWITCH_CHUNK_MEMORY_REQUIREMENT = sizeof(MemoryChunkSwitchMessage) + sizeof(DummyMessage);
 } // namespace
