@@ -338,8 +338,6 @@ void DeviceAgent::copyBuffersToTexture(const uint8_t *const *buffers, Texture *d
 void DeviceAgent::flushCommands(CommandBuffer *const *cmdBuffs, uint count) {
     if (!_multithreaded) return; // all command buffers are immediately executed
 
-    bool multiThreaded = hasFeature(Feature::MULTITHREADED_SUBMISSION);
-    
     auto **agentCmdBuffs = _mainMessageQueue->allocate<CommandBufferAgent *>(count);
 
     for (uint i = 0; i < count; ++i) {
