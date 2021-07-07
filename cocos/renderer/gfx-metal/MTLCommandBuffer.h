@@ -75,8 +75,8 @@ public:
     void dispatch(const DispatchInfo &info) override;
     void pipelineBarrier(const GlobalBarrier *barrier, const TextureBarrier *const *textureBarriers, const Texture *const *textures, uint textureBarrierCount) override;
 
-    CC_INLINE bool isCommandBufferBegan() const { return _commandBufferBegan; }
-    CC_INLINE id<MTLCommandBuffer> getMTLCommandBuffer() const { return _mtlCommandBuffer; }
+    inline bool isCommandBufferBegan() const { return _commandBufferBegan; }
+    inline id<MTLCommandBuffer> getMTLCommandBuffer() const { return _mtlCommandBuffer; }
 
 protected:
     friend class CCMTLQueue;
@@ -89,14 +89,13 @@ protected:
 
     CCMTLGPUPipelineState *_gpuPipelineState = nullptr;
 
-    vector<CCMTLGPUDescriptorSet *> _GPUDescriptorSets;
+    vector<CCMTLGPUDescriptorSet *> _GPUDescriptorSets; // NOLINT(bugprone-reserved-identifier)
     vector<vector<uint>> _dynamicOffsets;
     uint _firstDirtyDescriptorSet = UINT_MAX;
 
     bool _indirectDrawSuppotred = false;
     bool _commandBufferBegan = false;
     bool _isSecondary = false;
-    NSAutoreleasePool *_autoreleasePool = nullptr;
     CCMTLDevice *_mtlDevice = nullptr;
     id<MTLCommandQueue> _mtlCommandQueue = nil;
     id<MTLCommandBuffer> _mtlCommandBuffer = nil;

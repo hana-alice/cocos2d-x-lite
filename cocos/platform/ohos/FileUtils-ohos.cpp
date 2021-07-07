@@ -23,7 +23,7 @@ std::string      FileUtilsOHOS::ohosAssetPath   = {};
 
 namespace {
 
-const std::string RAWFILE_PREFIX = "entry/resources/rawfile/";
+std::string rawfilePrefix = "entry/resources/rawfile/";
 
 void printRawfiles(ResourceManager *mgr, const std::string &path) {
     auto *file = OpenRawFile(mgr, path.c_str());
@@ -37,7 +37,7 @@ void printRawfiles(ResourceManager *mgr, const std::string &path) {
         auto fileCnt = GetRawFileCount(dir);
         for (auto i = 0; i < fileCnt; i++) {
             std::string subFile  = GetRawFileName(dir, i);
-            auto        newPath  = path + "/" + subFile;
+            auto        newPath  = path + "/" + subFile; // NOLINT
             auto        debugPtr = newPath.c_str();
             HILOG_ERROR(LOG_APP, " find path %{public}s", newPath.c_str());
             printRawfiles(mgr, newPath);
@@ -48,7 +48,7 @@ void printRawfiles(ResourceManager *mgr, const std::string &path) {
 }
 } // namespace
 
-bool FileUtilsOHOS::initResourceManager(ResourceManager *mgr, const std::string &assetPath) {
+bool FileUtilsOHOS::initResourceManager(ResourceManager *mgr, const std::string &assetPath, const std::string &moduleName) {
     CCASSERT(mgr, "ResourceManager should not be empty!");
     ohosResourceMgr = mgr;
     if (!assetPath.empty() && assetPath[assetPath.length() - 1] != '/') {
@@ -56,7 +56,14 @@ bool FileUtilsOHOS::initResourceManager(ResourceManager *mgr, const std::string 
     } else {
         ohosAssetPath = assetPath;
     }
+    if (!moduleName.empty()) {
+        setRawfilePrefix(moduleName + "/resources/rawfile/");
+    }
     return true;
+}
+
+void FileUtilsOHOS::setRawfilePrefix(const std::string &prefix) {
+    rawfilePrefix = prefix;
 }
 
 ResourceManager *FileUtilsOHOS::getResourceManager() {
@@ -64,22 +71,16 @@ ResourceManager *FileUtilsOHOS::getResourceManager() {
 }
 
 FileUtils *FileUtils::getInstance() {
-    if (s_sharedFileUtils == nullptr) {
-        s_sharedFileUtils = new FileUtilsOHOS();
-        if (!s_sharedFileUtils->init()) {
-            delete s_sharedFileUtils;
-            s_sharedFileUtils = nullptr;
+    if (FileUtils::sharedFileUtils == nullptr) {
+        FileUtils::sharedFileUtils = new FileUtilsOHOS();
+        if (!FileUtils::sharedFileUtils->init()) {
+            delete FileUtils::sharedFileUtils;
+            FileUtils::sharedFileUtils = nullptr;
             CC_LOG_DEBUG("ERROR: Could not init CCFileUtilsAndroid");
         }
     }
-    return s_sharedFileUtils;
+    return FileUtils::sharedFileUtils;
 }
-
-//    FileUtilsOHOS::FileUtilsOHOS() {
-//    }
-//
-//    FileUtilsOHOS::~FileUtilsOHOS() noexcept {
-//    }
 
 bool FileUtilsOHOS::init() {
     _defaultResRootPath = ASSETS_FOLDER_NAME;
@@ -88,12 +89,12 @@ bool FileUtilsOHOS::init() {
 
 FileUtils::Status FileUtilsOHOS::getContents(const std::string &filename, ResizableBuffer *buffer) {
     if (filename.empty()) {
-        return FileUtils::Status::NotExists;
+        return FileUtils::Status::NOT_EXISTS;
     }
 
     std::string fullPath = fullPathForFilename(filename);
     if (fullPath.empty()) {
-        return FileUtils::Status::NotExists;
+        return FileUtils::Status::NOT_EXISTS;
     }
 
     if (fullPath[0] == '/') {
@@ -104,20 +105,20 @@ FileUtils::Status FileUtilsOHOS::getContents(const std::string &filename, Resiza
     size_t      position = fullPath.find(ASSETS_FOLDER_NAME);
     if (0 == position) {
         // "@assets/" is at the beginning of the path and we don't want it
-        relativePath = RAWFILE_PREFIX + fullPath.substr(strlen(ASSETS_FOLDER_NAME));
+        relativePath = rawfilePrefix + fullPath.substr(strlen(ASSETS_FOLDER_NAME));
     } else {
         relativePath = fullPath;
     }
 
     if (nullptr == ohosResourceMgr) {
         HILOG_ERROR(LOG_APP, "... FileUtilsAndroid::assetmanager is nullptr");
-        return FileUtils::Status::NotInitialized;
+        return FileUtils::Status::NOT_INITIALIZED;
     }
 
     RawFile *asset = OpenRawFile(ohosResourceMgr, relativePath.c_str());
     if (nullptr == asset) {
         HILOG_DEBUG(LOG_APP, "asset (%{public}s) is nullptr", filename.c_str());
-        return FileUtils::Status::OpenFailed;
+        return FileUtils::Status::OPEN_FAILED;
     }
 
     auto size = GetRawFileSize(asset);
@@ -133,7 +134,7 @@ FileUtils::Status FileUtilsOHOS::getContents(const std::string &filename, Resiza
         if (readsize >= 0) {
             buffer->resize(readsize);
         }
-        return FileUtils::Status::ReadFailed;
+        return FileUtils::Status::READ_FAILED;
     }
 
     return FileUtils::Status::OK;
@@ -163,7 +164,7 @@ bool FileUtilsOHOS::isFileExistInternal(const std::string &strFilePath) const {
 
     // relative path
     if (strFilePath.find(_defaultResRootPath) == 0) {
-        filePath = RAWFILE_PREFIX + filePath.substr(_defaultResRootPath.length());
+        filePath = rawfilePrefix + filePath.substr(_defaultResRootPath.length());
     }
 
     auto rawFile = OpenRawFile(ohosResourceMgr, filePath.c_str());
@@ -184,7 +185,7 @@ bool FileUtilsOHOS::isDirectoryExistInternal(const std::string &dirPath) const {
     }
 
     if (dirPathMf.find(_defaultResRootPath) == 0) {
-        dirPathMf = RAWFILE_PREFIX + dirPathMf.substr(_defaultResRootPath.length(), dirPathMf.length());
+        dirPathMf = rawfilePrefix + dirPathMf.substr(_defaultResRootPath.length(), dirPathMf.length());
     }
     assert(ohosResourceMgr);
     auto dir = OpenRawDir(ohosResourceMgr, dirPathMf.c_str());
@@ -204,7 +205,7 @@ std::string FileUtilsOHOS::expandPath(const std::string &input, bool *isRawFile)
 
     if (fullpath.find(_defaultResRootPath) == 0) {
         if (isRawFile) *isRawFile = true;
-        return RAWFILE_PREFIX + fullpath.substr(_defaultResRootPath.length(), fullpath.length());
+        return rawfilePrefix + fullpath.substr(_defaultResRootPath.length(), fullpath.length());
     }
 
     if (isRawFile) *isRawFile = false;

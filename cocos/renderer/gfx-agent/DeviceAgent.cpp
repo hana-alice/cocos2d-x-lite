@@ -341,6 +341,7 @@ void DeviceAgent::flushCommands(CommandBuffer *const *cmdBuffs, uint count) {
     bool multiThreaded = hasFeature(Feature::MULTITHREADED_SUBMISSION);
     
     auto **agentCmdBuffs = _mainMessageQueue->allocate<CommandBufferAgent *>(count);
+
     for (uint i = 0; i < count; ++i) {
         agentCmdBuffs[i] = static_cast<CommandBufferAgent *const>(cmdBuffs[i]);
         MessageQueue::freeChunksInFreeQueue(agentCmdBuffs[i]->_messageQueue);
@@ -351,7 +352,7 @@ void DeviceAgent::flushCommands(CommandBuffer *const *cmdBuffs, uint count) {
         _mainMessageQueue, DeviceFlushCommands,
         count, count,
         cmdBuffs, agentCmdBuffs,
-        multiThreaded, multiThreaded,
+        multiThreaded, getActor()->_multithreadedSubmission,
         {
             CommandBufferAgent::flushCommands(count, cmdBuffs, multiThreaded);
         });
