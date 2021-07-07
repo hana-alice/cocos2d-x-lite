@@ -31,7 +31,7 @@
 
 namespace cc {
 
-uint32_t constexpr MEMORY_CHUNK_SIZE               = 4096 * 16;
+static uint32_t constexpr MEMORY_CHUNK_SIZE               = 4096 * 16;
 // TODO(YunHsiao): thread-specific allocators
 template <typename T>
 inline T *memoryAllocateForMultiThread(uint32_t const count) noexcept {

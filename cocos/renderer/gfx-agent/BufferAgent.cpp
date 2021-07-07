@@ -95,20 +95,18 @@ void BufferAgent::doDestroy() {
 }
 
 void BufferAgent::update(const void *buffer, uint size) {
-    union AllocatorWrapper{
-        MessageQueue* msgQ;
-        ThreadSafeLinearAllocator* linearAlloctor;
-    };
-    AllocatorWrapper aw;
+    ThreadSafeLinearAllocator *allocator = nullptr;
     uint8_t *actorBuffer = nullptr;
     bool useMsgQ = size < MEMORY_CHUNK_SIZE;
+    // buffer will be allocated by message queue if it could be put in, memory fragment can be avoid by mem pool inside,
+    // otherwise using threadSafeAllocator.
     if (useMsgQ) {
-        aw.msgQ = DeviceAgent::getInstance()->getMessageQueue();
-        actorBuffer = aw.msgQ->allocate<uint8_t>(size);
+        auto *msgQ = DeviceAgent::getInstance()->getMessageQueue();
+        actorBuffer = msgQ->allocate<uint8_t>(size);
         memcpy(actorBuffer, buffer, size);
     } else {
-        aw.linearAlloctor = CC_NEW(ThreadSafeLinearAllocator(size));
-        actorBuffer = aw.linearAlloctor->allocate<uint8_t>(size);
+        allocator = CC_NEW(ThreadSafeLinearAllocator(size));
+        actorBuffer = allocator->allocate<uint8_t>(size);
         memcpy(actorBuffer, buffer, size);
     }
 
@@ -118,10 +116,10 @@ void BufferAgent::update(const void *buffer, uint size) {
         actor, getActor(),
         buffer, actorBuffer,
         size, size,
-        allocator,useMsgQ ? nullptr : aw.linearAlloctor,
+        allocator, allocator,
         {
             actor->update(buffer, size);
-            CC_DELETE(allocator);
+            CC_SAFE_DELETE(allocator);
         });
 }
 
