@@ -38,17 +38,17 @@ CCMTLFramebuffer::CCMTLFramebuffer() : Framebuffer() {
 
 void CCMTLFramebuffer::doInit(const FramebufferInfo &info) {
     auto *mtlRenderPass = static_cast<CCMTLRenderPass *>(_renderPass);
-    for( int i = 0; i < _colorTextures.size(); i++ ) {
-        auto *colorTexture = static_cast<CCMTLTexture*>(_colorTextures[i]);
-        if(colorTexture)
-            mtlRenderPass->setColorAttachment(i, colorTexture->getMTLTexture(), 0);
-    }
-
-    if(_depthStencilTexture) {
-        auto *dsTexture = static_cast<CCMTLTexture*>(_depthStencilTexture);
-        if(dsTexture)
-            mtlRenderPass->setDepthStencilAttachment(dsTexture->getMTLTexture(), 0);
-    }
+//    for( int i = 0; i < _colorTextures.size(); i++ ) {
+//        auto *colorTexture = static_cast<CCMTLTexture*>(_colorTextures[i]);
+//        if(colorTexture)
+//            mtlRenderPass->setColorAttachment(i, colorTexture->getMTLTexture(), 0);
+//    }
+//
+//    if(_depthStencilTexture) {
+//        auto *dsTexture = static_cast<CCMTLTexture*>(_depthStencilTexture);
+//        if(dsTexture)
+//            mtlRenderPass->setDepthStencilAttachment(dsTexture->getMTLTexture(), 0);
+//    }
 
     _isOffscreen = (_colorTextures.size() != 0);
 }

@@ -108,18 +108,22 @@ bool CCMTLTexture::createMTLTexture() {
     if (descriptor == nullptr)
         return false;
 
-    descriptor.usage = mu::toMTLTextureUsage(_usage) | MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
+    descriptor.usage = mu::toMTLTextureUsage(_usage);
     descriptor.textureType = mu::toMTLTextureType(_type);
     descriptor.sampleCount = mu::toMTLSampleCount(_samples);
     descriptor.mipmapLevelCount = _levelCount;
     descriptor.arrayLength = _type == TextureType::CUBE ? 1 : _layerCount;
+    
     if (hasFlag(_usage, TextureUsage::COLOR_ATTACHMENT) ||
         hasFlag(_usage, TextureUsage::DEPTH_STENCIL_ATTACHMENT) ||
         hasFlag(_usage, TextureUsage::INPUT_ATTACHMENT)) {
-        descriptor.resourceOptions = MTLResourceStorageModePrivate;
-        //descriptor.storageMode = MTLStorageModeMemoryless;
+//#if (CC_PLATFORM == CC_PLATFORM_MAC_OSX) && !TARGET_CPU_ARM64
+        descriptor.storageMode = MTLStorageModePrivate;
+//#else
+        if(isSubset(_usage, TextureUsage::COLOR_ATTACHMENT | TextureUsage::DEPTH_STENCIL_ATTACHMENT | TextureUsage::INPUT_ATTACHMENT))
+            descriptor.storageMode = MTLStorageModeMemoryless;
+//#endif
     }
-    
 
     id<MTLDevice> mtlDevice = id<MTLDevice>(CCMTLDevice::getInstance()->getMTLDevice());
     _mtlTexture = [mtlDevice newTextureWithDescriptor:descriptor];

@@ -34,6 +34,7 @@
 #include "StandAlone/ResourceLimits.h"
 #include "glslang/SPIRV/GlslangToSpv.h"
 #include "spirv_cross/spirv_msl.hpp"
+#include "TargetConditionals.h"
 
 namespace cc {
 namespace gfx {
@@ -101,7 +102,7 @@ const vector<unsigned int> GLSL2SPIRV(ShaderStageFlagBit type, const String &sou
     shader.setEnvClient(glslang::EShClientVulkan, clientVersion);
     shader.setEnvTarget(glslang::EShTargetSpv, targetVersion);
 
-    EShMessages messages = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules);
+    EShMessages messages = EShMsgRelaxedErrors;
 
     if (!shader.parse(&glslang::DefaultTBuiltInResource, clientInputSemanticsVersion, false, messages)) {
         CC_LOG_ERROR("GLSL Parsing Failed:\n%s\n%s", shader.getInfoLog(), shader.getInfoDebugLog());
@@ -807,6 +808,11 @@ MTLTextureUsage mu::toMTLTextureUsage(TextureUsage usage) {
         hasFlag(usage, TextureUsage::DEPTH_STENCIL_ATTACHMENT) ||
         hasFlag(usage, TextureUsage::INPUT_ATTACHMENT)) {
         ret |= MTLTextureUsageRenderTarget;
+        
+        // m1 support imageblocks
+#if (CC_PLATFORM == CC_PLATFORM_MAC_OSX) && !TARGET_CPU_ARM64
+        ret |= MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
+#endif
     }
 
     return ret;
@@ -880,12 +886,31 @@ MTLSamplerMipFilter mu::toMTLSamplerMipFilter(Filter filter) {
     }
 }
 
+bool mu::isImageBlockSupported() {
+#if (CC_PLATFORM == CC_PLATFORM_MAC_IOS) || TARGET_CPU_ARM64
+    return true;
+#else
+    return false;
+#endif
+}
+
+void declareExtensions(String& prefix, const String& src, ShaderStageFlagBit shaderType) {
+    if(shaderType == ShaderStageFlagBit::FRAGMENT && src.find("GL_EXT_shader_framebuffer_fetch") != String::npos) {
+        // mac fallback to texture<access:: read_write>, except on m1 core
+        prefix.append("#define GL_EXT_shader_framebuffer_fetch\n");
+    }
+    if(shaderType == ShaderStageFlagBit::FRAGMENT && src.find("GL_EXT_shader_pixel_local_storage") != String::npos && mu::isImageBlockSupported()) {
+        prefix.append("#define GL_EXT_shader_pixel_local_storage\n");
+    }
+}
+
 String mu::compileGLSLShader2Msl(const String &src,
                                  ShaderStageFlagBit shaderType,
                                  Device *device,
                                  CCMTLGPUShader *gpuShader) {
 #if CC_USE_METAL
     String shaderSource("#version 460\n");
+    declareExtensions(shaderSource, src, shaderType);
     shaderSource.append(src);
     const auto &spv = GLSL2SPIRV(shaderType, shaderSource);
     if (spv.size() == 0)
@@ -900,6 +925,21 @@ String mu::compileGLSLShader2Msl(const String &src,
     auto active = msl.get_active_interface_variables();
     spirv_cross::ShaderResources resources = msl.get_shader_resources(active);
     msl.set_enabled_interface_variables(std::move(active));
+    
+    // Set some options.
+    spirv_cross::CompilerMSL::Options options;
+    //options.set_msl_version(2, 3, 0);
+    options.enable_decoration_binding = true;
+#if (CC_PLATFORM == CC_PLATFORM_MAC_OSX)
+    options.platform = spirv_cross::CompilerMSL::Options::Platform::macOS;
+#elif (CC_PLATFORM == CC_PLATFORM_MAC_IOS)
+    options.platform = spirv_cross::CompilerMSL::Options::Platform::iOS;
+#endif
+    options.emulate_subgroups = true;
+    options.pad_fragment_output_components = true;
+    //options.use_framebuffer_fetch_subpasses = mu::isImageBlockSupported();
+    msl.set_msl_options(options);
+    msl.needs_input_threadgroup_mem();
 
     // TODO: bindings from shader just kind of validation, cannot be directly input
     // Get all uniform buffers in the shader.
@@ -990,39 +1030,30 @@ String mu::compileGLSLShader2Msl(const String &src,
     
     if(executionModel == spv::ExecutionModelFragment && resources.stage_outputs.size() > 1) {
         // msl: [color[0]] is always reserved for unspecified output target
-        // we engine: even in pre-subpass
+        // even in first stage of subpass(render to gbuffer)
+        gpuShader->subpassAttachments.resize(resources.stage_outputs.size());
         for(size_t i = 0; i < resources.stage_outputs.size(); i++) {
             const auto& stageOutput = resources.stage_outputs[i];
-            auto binding = msl.get_decoration(stageOutput.id, spv::DecorationLocation);
-            msl.set_decoration(stageOutput.id, spv::DecorationLocation, i + 1);
+            auto set = msl.get_decoration(stageOutput.id, spv::DecorationDescriptorSet);
+            auto attachmentIndex = i + 1;
+            msl.set_decoration(stageOutput.id, spv::DecorationLocation, attachmentIndex);
+            gpuShader->subpassAttachments[i].set = set;
+            gpuShader->subpassAttachments[i].binding = attachmentIndex;
         }
     }
     
-    gpuShader->subpassInputs.resize(resources.subpass_inputs.size());
-    for(size_t i = 0; i < resources.subpass_inputs.size(); i++) {
-        const auto& attachment = resources.subpass_inputs[i];
-        gpuShader->subpassInputs[i].name = attachment.name;
-        auto set = msl.get_decoration(attachment.id, spv::DecorationDescriptorSet);
-        auto binding = msl.get_decoration(attachment.id, spv::DecorationBinding);
-        msl.set_decoration(attachment.id, spv::DecorationInputAttachmentIndex,binding);
-        gpuShader->subpassInputs[i].set = set;
-        gpuShader->subpassInputs[i].binding = binding;
-        
-        //msl.set_subpass_input_remapped_components(attachment.id, 2);
+    if(executionModel == spv::ExecutionModelFragment && resources.subpass_inputs.size() > 0) {
+        // msl: [color[0]] is always reserved for unspecified output target
+        gpuShader->subpassAttachments.resize(resources.subpass_inputs.size());
+        for(size_t i = 0; i < resources.subpass_inputs.size(); i++) {
+            const auto& attachment = resources.subpass_inputs[i];
+            gpuShader->subpassAttachments[i].name = attachment.name;
+            // color[0] always reserved for output target
+            auto index = msl.get_decoration(attachment.id, spv::DecorationInputAttachmentIndex) + 1;
+            msl.set_decoration(attachment.id, spv::DecorationInputAttachmentIndex,index);
+            gpuShader->subpassAttachments[i].binding = index;
+        }
     }
-    
-    // Set some options.
-    spirv_cross::CompilerMSL::Options options;
-    //options.use_framebuffer_fetch_subpasses = true;
-    options.set_msl_version(2, 3, 0);
-    options.enable_decoration_binding = true;
-    //    options.set_msl_version(2, 0);
-    #if (CC_PLATFORM == CC_PLATFORM_MAC_IOS)
-    options.platform = spirv_cross::CompilerMSL::Options::Platform::iOS;
-    #else
-    options.platform = spirv_cross::CompilerMSL::Options::Platform::macOS;
-    #endif
-    msl.set_msl_options(options);
 
     // Compile to MSL, ready to give to metal driver.
     String output = msl.compile();

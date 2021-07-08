@@ -100,7 +100,7 @@ bool CCMTLShader::createMTLFunction(const ShaderStage &stage) {
     NSString *     shader  = [NSString stringWithUTF8String:mtlShader.c_str()];
     NSError *      error   = nil;
     MTLCompileOptions *opts = [[MTLCompileOptions alloc] init];;
-    opts.languageVersion = MTLLanguageVersion2_3;
+    //opts.languageVersion = MTLLanguageVersion2_3;
     id<MTLLibrary> library = [mtlDevice newLibraryWithSource:shader
                                                      options:opts
                                                        error:&error];
