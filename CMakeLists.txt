@@ -410,6 +410,7 @@ cocos_source_files(
     cocos/base/etc2.cpp
     cocos/base/etc2.h
     cocos/base/IndexHandle.h
+    cocos/base/Locked.h
     cocos/base/Log.cpp
     cocos/base/Log.h
     cocos/base/Macros.h

@@ -189,6 +189,7 @@ void DeviceAgent::releaseSurface(uintptr_t windowHandle) {
         {
             actor->releaseSurface(windowHandle);
         });
+    _mainMessageQueue->kickAndWait();
 }
 
 void DeviceAgent::acquireSurface(uintptr_t windowHandle) {
