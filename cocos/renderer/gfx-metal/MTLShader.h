@@ -48,6 +48,8 @@ public:
     CC_INLINE const CCMTLGPUShader *gpuShader() const { return _gpuShader; }
 
     uint getAvailableBufferBindingIndex(ShaderStageFlagBit stage, uint stream);
+    
+    void setFunctionConstantIndex(uint index, int val);
 
 #ifdef DEBUG_SHADER
     CC_INLINE const String &getVertGlslShader() const { return _vertGlslShader; }

@@ -156,6 +156,17 @@ bool CCMTLShader::createMTLFunction(const ShaderStage &stage) {
     return true;
 }
 
+void CCMTLShader::setFunctionConstantIndex(uint index, int val) {
+    MTLFunctionConstantValues* constantValues = [MTLFunctionConstantValues new];
+    [constantValues setConstantValue:&val type:MTLDataTypeInt atIndex:index];
+    
+    id<MTLDevice> mtlDevice = id<MTLDevice>(CCMTLDevice::getInstance()->getMTLDevice());
+    id<MTLLibrary> defaultLibrary = [mtlDevice newDefaultLibrary];
+    NSError *      error   = nil;
+    NSString *name = [NSString stringWithCString:_name.c_str() encoding:[NSString defaultCStringEncoding]];
+    [defaultLibrary newFunctionWithName:name constantValues:constantValues error:&error];
+}
+
 uint CCMTLShader::getAvailableBufferBindingIndex(ShaderStageFlagBit stage, uint stream) {
     if (hasFlag(stage, ShaderStageFlagBit::VERTEX)) {
         return _availableVertexBufferBindingIndex.at(stream);

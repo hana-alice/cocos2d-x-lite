@@ -939,7 +939,6 @@ String mu::compileGLSLShader2Msl(const String &src,
     options.pad_fragment_output_components = true;
     //options.use_framebuffer_fetch_subpasses = mu::isImageBlockSupported();
     msl.set_msl_options(options);
-    msl.needs_input_threadgroup_mem();
 
     // TODO: bindings from shader just kind of validation, cannot be directly input
     // Get all uniform buffers in the shader.
@@ -1035,7 +1034,7 @@ String mu::compileGLSLShader2Msl(const String &src,
         for(size_t i = 0; i < resources.stage_outputs.size(); i++) {
             const auto& stageOutput = resources.stage_outputs[i];
             auto set = msl.get_decoration(stageOutput.id, spv::DecorationDescriptorSet);
-            auto attachmentIndex = i + 1;
+            auto attachmentIndex = i;
             msl.set_decoration(stageOutput.id, spv::DecorationLocation, attachmentIndex);
             gpuShader->subpassAttachments[i].set = set;
             gpuShader->subpassAttachments[i].binding = attachmentIndex;
@@ -1049,7 +1048,7 @@ String mu::compileGLSLShader2Msl(const String &src,
             const auto& attachment = resources.subpass_inputs[i];
             gpuShader->subpassAttachments[i].name = attachment.name;
             // color[0] always reserved for output target
-            auto index = msl.get_decoration(attachment.id, spv::DecorationInputAttachmentIndex) + 1;
+            auto index = msl.get_decoration(attachment.id, spv::DecorationInputAttachmentIndex);
             msl.set_decoration(attachment.id, spv::DecorationInputAttachmentIndex,index);
             gpuShader->subpassAttachments[i].binding = index;
         }
@@ -1057,6 +1056,15 @@ String mu::compileGLSLShader2Msl(const String &src,
 
     // Compile to MSL, ready to give to metal driver.
     String output = msl.compile();
+    if(executionModel == spv::ExecutionModelFragment) {
+        auto customCodingPos = output.find("using namespace metal;");
+        
+        for(size_t i = 0; i < resources.stage_outputs.size(); i++) {
+            String indexStr = std::to_string(i);
+            output.insert(customCodingPos, "\nconstant int indexOffset" + indexStr + " [[ function_constant(" + indexStr + ") ]];\n");
+            output.replace(output.find("color(" + indexStr + ")"), 8, "color(" + indexStr + " + indexOffset" + indexStr + ")");
+        }
+    }
     if (!output.size()) {
         CC_LOG_ERROR("Compile to MSL failed.");
         CC_LOG_ERROR("%s", shaderSource.c_str());

@@ -254,17 +254,7 @@ void CCMTLPipelineState::setMTLFunctions(MTLRenderPipelineDescriptor *descriptor
 void CCMTLPipelineState::setFormats(MTLRenderPipelineDescriptor *descriptor) {
     int i = 0;
     MTLPixelFormat mtlPixelFormat;
-    if(!_renderPass->getSubpasses().empty()) {
-        // color[0] default output attachment, most likely drawable
-        descriptor.colorAttachments[i].pixelFormat = MTLPixelFormatBGRA8Unorm;
-        ++i;
-    }
-    for (const auto &colorAttachment : _renderPass->getColorAttachments()) {
-        mtlPixelFormat = mu::toMTLPixelFormat(colorAttachment.format);
-        if (mtlPixelFormat != MTLPixelFormatInvalid)
-            descriptor.colorAttachments[i].pixelFormat = mtlPixelFormat;
-        ++i;
-    }
+    descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA8Unorm;
     
 
     mtlPixelFormat = mu::toMTLPixelFormat(_renderPass->getDepthStencilAttachment().format);
