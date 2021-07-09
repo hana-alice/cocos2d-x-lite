@@ -119,7 +119,15 @@ void BufferAgent::doDestroy() {
         });
     
     for (auto &allocator : _allocator) {
-        CC_SAFE_DELETE(allocator);
+        if(allocator) {
+            ENQUEUE_MESSAGE_1(
+                DeviceAgent::getInstance()->getMessageQueue(),
+                BufferDestroy,
+                allocator, allocator,
+                {
+                    CC_DELETE(allocator);
+                });
+        }
     }
 }
 
