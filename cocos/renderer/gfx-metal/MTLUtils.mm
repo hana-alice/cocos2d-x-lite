@@ -937,7 +937,8 @@ String mu::compileGLSLShader2Msl(const String &src,
 #endif
     options.emulate_subgroups = true;
     options.pad_fragment_output_components = true;
-    //options.use_framebuffer_fetch_subpasses = mu::isImageBlockSupported();
+    options.use_framebuffer_fetch_subpasses = mu::isImageBlockSupported();
+    options.set_msl_version(2, 3, 0);
     msl.set_msl_options(options);
 
     // TODO: bindings from shader just kind of validation, cannot be directly input
@@ -1027,30 +1028,30 @@ String mu::compileGLSLShader2Msl(const String &src,
         }
     }
     
-    if(executionModel == spv::ExecutionModelFragment && resources.stage_outputs.size() > 1) {
-        // msl: [color[0]] is always reserved for unspecified output target
-        // even in first stage of subpass(render to gbuffer)
-        gpuShader->subpassAttachments.resize(resources.stage_outputs.size());
+
+        gpuShader->outputs.resize(resources.stage_outputs.size());
         for(size_t i = 0; i < resources.stage_outputs.size(); i++) {
             const auto& stageOutput = resources.stage_outputs[i];
             auto set = msl.get_decoration(stageOutput.id, spv::DecorationDescriptorSet);
             auto attachmentIndex = i;
             msl.set_decoration(stageOutput.id, spv::DecorationLocation, attachmentIndex);
-            gpuShader->subpassAttachments[i].set = set;
-            gpuShader->subpassAttachments[i].binding = attachmentIndex;
+            gpuShader->outputs[i].name = stageOutput.name;
+            gpuShader->outputs[i].set = set;
+            gpuShader->outputs[i].binding = attachmentIndex;
         }
-    }
     
-    if(executionModel == spv::ExecutionModelFragment && resources.subpass_inputs.size() > 0) {
+    
+    if(executionModel == spv::ExecutionModelFragment && !resources.subpass_inputs.empty()) {
         // msl: [color[0]] is always reserved for unspecified output target
-        gpuShader->subpassAttachments.resize(resources.subpass_inputs.size());
+        gpuShader->inputs.resize(resources.subpass_inputs.size());
         for(size_t i = 0; i < resources.subpass_inputs.size(); i++) {
             const auto& attachment = resources.subpass_inputs[i];
-            gpuShader->subpassAttachments[i].name = attachment.name;
-            // color[0] always reserved for output target
+            gpuShader->inputs[i].name = attachment.name;
+            auto set = msl.get_decoration(attachment.id, spv::DecorationDescriptorSet);
             auto index = msl.get_decoration(attachment.id, spv::DecorationInputAttachmentIndex);
-            msl.set_decoration(attachment.id, spv::DecorationInputAttachmentIndex,index);
-            gpuShader->subpassAttachments[i].binding = index;
+            msl.set_decoration(attachment.id, spv::DecorationBinding,index);
+            gpuShader->inputs[i].binding = index;
+            gpuShader->inputs[i].set = set;
         }
     }
 
@@ -1059,11 +1060,18 @@ String mu::compileGLSLShader2Msl(const String &src,
     if(executionModel == spv::ExecutionModelFragment) {
         auto customCodingPos = output.find("using namespace metal;");
         
-        for(size_t i = 0; i < resources.stage_outputs.size(); i++) {
+        for(int i = resources.stage_outputs.size() - 1; i >=0; --i) {
             String indexStr = std::to_string(i);
             output.insert(customCodingPos, "\nconstant int indexOffset" + indexStr + " [[ function_constant(" + indexStr + ") ]];\n");
-            output.replace(output.find("color(" + indexStr + ")"), 8, "color(" + indexStr + " + indexOffset" + indexStr + ")");
+            output.replace(output.find("color(" + indexStr + ")"), 8, "color(indexOffset" + indexStr + ")");
         }
+        
+        String tex3 = "texture2d<float> gbuffer3";
+        auto pos = output.find(tex3);
+        if(pos != tex3.npos) {
+            output.replace(pos, tex3.length(), "texture2d<float, access::read_write> gbuffer3");
+        }
+        //texture2d<float> gbuffer3
     }
     if (!output.size()) {
         CC_LOG_ERROR("Compile to MSL failed.");

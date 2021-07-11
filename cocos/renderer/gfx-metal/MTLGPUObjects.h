@@ -88,8 +88,8 @@ public:
     unordered_map<uint, CCMTLGPUUniformBlock> blocks;
     unordered_map<uint, CCMTLGPUSamplerBlock> samplers;
     
-    // subpass attachments id generated in shader arranged by same order
-    vector<CCMTLGPUSubpassAttachment> subpassAttachments;
+    vector<CCMTLGPUSubpassAttachment> inputs;
+    vector<CCMTLGPUSubpassAttachment> outputs;
 };
 
 struct CCMTLGPUPipelineState {

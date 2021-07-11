@@ -119,9 +119,10 @@ bool CCMTLTexture::createMTLTexture() {
         hasFlag(_usage, TextureUsage::INPUT_ATTACHMENT)) {
 //#if (CC_PLATFORM == CC_PLATFORM_MAC_OSX) && !TARGET_CPU_ARM64
         descriptor.storageMode = MTLStorageModePrivate;
+        descriptor.usage |= MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
 //#else
-        if(isSubset(_usage, TextureUsage::COLOR_ATTACHMENT | TextureUsage::DEPTH_STENCIL_ATTACHMENT | TextureUsage::INPUT_ATTACHMENT))
-            descriptor.storageMode = MTLStorageModeMemoryless;
+//        if(isSubset(_usage, TextureUsage::COLOR_ATTACHMENT | TextureUsage::DEPTH_STENCIL_ATTACHMENT | TextureUsage::INPUT_ATTACHMENT))
+//            descriptor.storageMode = MTLStorageModeMemoryless;
 //#endif
     }
 

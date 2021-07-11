@@ -41,15 +41,15 @@ public:
     CCMTLShader &operator=(const CCMTLShader &)=delete;
     CCMTLShader &operator=(CCMTLShader &&)=delete;
 
-    CC_INLINE id<MTLFunction> getVertMTLFunction() const { return _vertexMTLFunction; }
-    CC_INLINE id<MTLFunction> getFragmentMTLFunction() const { return _fragmentMTLFunction; }
-    CC_INLINE id<MTLFunction> getComputeMTLFunction() const { return _computeMTLFunction; }
+    CC_INLINE id<MTLFunction> getVertMTLFunction() const { return _vertFunction; }
+    CC_INLINE id<MTLFunction> getFragmentMTLFunction() const { return _fragFunction; }
+    CC_INLINE id<MTLFunction> getComputeMTLFunction() const { return _cmptFunction; }
     CC_INLINE const unordered_map<uint, uint> &getFragmentSamplerBindings() const { return _mtlFragmentSamplerBindings; }
     CC_INLINE const CCMTLGPUShader *gpuShader() const { return _gpuShader; }
 
     uint getAvailableBufferBindingIndex(ShaderStageFlagBit stage, uint stream);
     
-    void setFunctionConstantIndex(uint index, int val);
+    id<MTLFunction> getSpecializedFragFunction(uint* index, int* val, uint count);
 
 #ifdef DEBUG_SHADER
     CC_INLINE const String &getVertGlslShader() const { return _vertGlslShader; }
@@ -67,9 +67,17 @@ protected:
     bool createMTLFunction(const ShaderStage &);
     void setAvailableBufferBindingIndex();
 
-    id<MTLFunction> _vertexMTLFunction = nil;
-    id<MTLFunction> _fragmentMTLFunction = nil;
-    id<MTLFunction> _computeMTLFunction = nil;
+    id<MTLFunction> _vertFunction = nil;
+    id<MTLFunction> _fragFunction = nil;
+    id<MTLFunction> _cmptFunction = nil;
+    
+    id<MTLLibrary> _vertLibrary = nil;
+    id<MTLLibrary> _fragLibrary = nil;
+    id<MTLLibrary> _cmptLibrary = nil;
+    
+    // function constant hash , specialized MTLFunction
+    NSMutableDictionary<NSString*, id<MTLFunction>>* _specializedFragFuncs = nil;
+    
     unordered_map<uint, uint> _mtlFragmentSamplerBindings;
     vector<uint> _availableVertexBufferBindingIndex;
     vector<uint> _availableFragmentBufferBindingIndex;
