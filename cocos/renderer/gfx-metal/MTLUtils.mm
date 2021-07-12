@@ -797,16 +797,15 @@ MTLTextureUsage mu::toMTLTextureUsage(TextureUsage usage) {
 
     MTLTextureUsage ret = MTLTextureUsageUnknown;
     if (hasFlag(usage, TextureUsage::TRANSFER_SRC))
-        ret |= MTLTextureUsageShaderRead | MTLTextureUsagePixelFormatView;
+        ret |= MTLTextureUsageShaderRead;
     if (hasFlag(usage, TextureUsage::TRANSFER_DST))
         ret |= MTLTextureUsageShaderWrite;
-    if (hasFlag(usage, TextureUsage::SAMPLED))
+    if (hasFlag(usage, TextureUsage::SAMPLED) || hasFlag(usage, TextureUsageBit::INPUT_ATTACHMENT))
         ret |= MTLTextureUsageShaderRead;
     if (hasFlag(usage, TextureUsage::STORAGE))
         ret |= MTLTextureUsageShaderWrite;
     if (hasFlag(usage, TextureUsage::COLOR_ATTACHMENT) ||
-        hasFlag(usage, TextureUsage::DEPTH_STENCIL_ATTACHMENT) ||
-        hasFlag(usage, TextureUsage::INPUT_ATTACHMENT)) {
+        hasFlag(usage, TextureUsage::DEPTH_STENCIL_ATTACHMENT)) {
         ret |= MTLTextureUsageRenderTarget;
         
         // m1 support imageblocks
@@ -887,6 +886,7 @@ MTLSamplerMipFilter mu::toMTLSamplerMipFilter(Filter filter) {
 }
 
 bool mu::isImageBlockSupported() {
+    return false;
 #if (CC_PLATFORM == CC_PLATFORM_MAC_IOS) || TARGET_CPU_ARM64
     return true;
 #else
@@ -928,7 +928,6 @@ String mu::compileGLSLShader2Msl(const String &src,
     
     // Set some options.
     spirv_cross::CompilerMSL::Options options;
-    //options.set_msl_version(2, 3, 0);
     options.enable_decoration_binding = true;
 #if (CC_PLATFORM == CC_PLATFORM_MAC_OSX)
     options.platform = spirv_cross::CompilerMSL::Options::Platform::macOS;
@@ -938,7 +937,7 @@ String mu::compileGLSLShader2Msl(const String &src,
     options.emulate_subgroups = true;
     options.pad_fragment_output_components = true;
     options.use_framebuffer_fetch_subpasses = mu::isImageBlockSupported();
-    options.set_msl_version(2, 3, 0);
+    //options.set_msl_version(2, 3, 0);
     msl.set_msl_options(options);
 
     // TODO: bindings from shader just kind of validation, cannot be directly input
@@ -1066,12 +1065,6 @@ String mu::compileGLSLShader2Msl(const String &src,
             output.replace(output.find("color(" + indexStr + ")"), 8, "color(indexOffset" + indexStr + ")");
         }
         
-        String tex3 = "texture2d<float> gbuffer3";
-        auto pos = output.find(tex3);
-        if(pos != tex3.npos) {
-            output.replace(pos, tex3.length(), "texture2d<float, access::read_write> gbuffer3");
-        }
-        //texture2d<float> gbuffer3
     }
     if (!output.size()) {
         CC_LOG_ERROR("Compile to MSL failed.");

@@ -306,60 +306,6 @@ void CCMTLPipelineState::setMTLFunctionsAndFormats(MTLRenderPipelineDescriptor *
         bindingOffsets.emplace_back(0);
     }
 
-//    // gpushader->inputs() doesn't process duplication removal.
-//    uint offset = 0;
-//    if(!gpuShader->inputs.empty()) {
-//        auto ccRenderpass = static_cast<CCMTLRenderPass*>(_renderPass);
-//        offset = ccRenderpass->getOuputOffset() + gpuShader->inputs.size();
-//        ccRenderpass->outputOffsetIncrease();
-//    }
-//    // every output attachment ( [[color(n)]] ) slot can be set individually.
-//    for (size_t i = 0; i < gpuShader->outputs.size(); ++i) {
-//        bindingIndices.emplace_back(i);
-//        bindingOffsets.emplace_back(gpuShader->outputs[i].binding + offset);
-//    }
-    
-//    if(!subpasses.empty()) {
-//        uint attachmentOffset = 0;
-//        std::set<uint> bindings;
-//        uint count = 0;
-//        for(size_t passIndex = 0; passIndex < subpasses.size(); ++passIndex) {
-//            const SubpassInfo& curSubpass = subpasses[passIndex];
-//            for (size_t i = 0; i < curSubpass.colors.size(); ++i) {
-//                uint color = curSubpass.colors[i];
-//                bindingIndices.push_back(i);
-//                bindingOffsets.push_back(color - count + attachmentOffset);
-//                mtlPixelFormat = mu::toMTLPixelFormat(colorAttachments[color].format);
-//                descriptor.colorAttachments[i].pixelFormat = mtlPixelFormat;
-//                ++count;
-//                bindings.insert(color);
-//            }
-//            attachmentOffset += count;
-//        }
-//
-//        for(size_t passIndex = 0; passIndex < subpasses.size(); ++passIndex) {
-//            const SubpassInfo& curSubpass = subpasses[passIndex];
-//            uint count = 0;
-//            for (size_t i = 0; i < curSubpass.inputs.size(); ++i) {
-//                uint input = curSubpass.inputs[i];
-//                if(bindings.find(input) == bindings.end()) {
-//                    bindingIndices.push_back(count + attachmentOffset);
-//                    bindingOffsets.push_back(input - count + attachmentOffset);
-//                    mtlPixelFormat = mu::toMTLPixelFormat(colorAttachments[input].format);
-//                    descriptor.colorAttachments[i].pixelFormat = mtlPixelFormat;
-//                    ++count;
-//                }
-//            }
-//            attachmentOffset += count;
-//        }
-//
-//    } else {
-//        bindingIndices.push_back(0);
-//        bindingOffsets.push_back(0);
-//        mtlPixelFormat = mu::toMTLPixelFormat(colorAttachments[0].format);
-//        descriptor.colorAttachments[0].pixelFormat = mtlPixelFormat;
-//    }
-    
     descriptor.vertexFunction = ((CCMTLShader *)_shader)->getVertMTLFunction();
     descriptor.fragmentFunction = ((CCMTLShader *)_shader)->getSpecializedFragFunction(bindingIndices.data(), bindingOffsets.data(), bindingIndices.size());
 
@@ -381,15 +327,15 @@ void CCMTLPipelineState::setBlendStates(MTLRenderPipelineDescriptor *descriptor)
     for (const auto blendTarget : _blendState.targets) {
         MTLRenderPipelineColorAttachmentDescriptor *colorDescriptor = descriptor.colorAttachments[i];
         colorDescriptor.blendingEnabled = blendTarget.blend != 0;
-        if (!blendTarget.blend)
-            continue;
+//        if (!blendTarget.blend)
+//            continue;
 
         colorDescriptor.writeMask = mu::toMTLColorWriteMask(blendTarget.blendColorMask);
-        colorDescriptor.sourceRGBBlendFactor = mu::toMTLBlendFactor(blendTarget.blendSrc);
-        colorDescriptor.destinationRGBBlendFactor = mu::toMTLBlendFactor(blendTarget.blendDst);
+        colorDescriptor.sourceRGBBlendFactor = MTLBlendFactorOne;//mu::toMTLBlendFactor(blendTarget.blendSrc);
+        colorDescriptor.destinationRGBBlendFactor = MTLBlendFactorZero;//mu::toMTLBlendFactor(blendTarget.blendDst);
         colorDescriptor.rgbBlendOperation = mu::toMTLBlendOperation(blendTarget.blendEq);
-        colorDescriptor.sourceAlphaBlendFactor = mu::toMTLBlendFactor(blendTarget.blendSrcAlpha);
-        colorDescriptor.destinationAlphaBlendFactor = mu::toMTLBlendFactor(blendTarget.blendDstAlpha);
+        colorDescriptor.sourceAlphaBlendFactor = MTLBlendFactorOne;//mu::toMTLBlendFactor(blendTarget.blendSrcAlpha);
+        colorDescriptor.destinationAlphaBlendFactor = MTLBlendFactorZero;//mu::toMTLBlendFactor(blendTarget.blendDstAlpha);
         colorDescriptor.alphaBlendOperation = mu::toMTLBlendOperation(blendTarget.blendAlphaEq);
 
         ++i;
