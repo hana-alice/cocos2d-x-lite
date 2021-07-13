@@ -806,12 +806,7 @@ MTLTextureUsage mu::toMTLTextureUsage(TextureUsage usage) {
         ret |= MTLTextureUsageShaderWrite;
     if (hasFlag(usage, TextureUsage::COLOR_ATTACHMENT) ||
         hasFlag(usage, TextureUsage::DEPTH_STENCIL_ATTACHMENT)) {
-        ret |= MTLTextureUsageRenderTarget;
-        
-        // m1 support imageblocks
-#if (CC_PLATFORM == CC_PLATFORM_MAC_OSX) && !TARGET_CPU_ARM64
-        ret |= MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
-#endif
+        ret |= MTLTextureUsageRenderTarget | MTLTextureUsageShaderWrite;
     }
 
     return ret;
@@ -886,7 +881,7 @@ MTLSamplerMipFilter mu::toMTLSamplerMipFilter(Filter filter) {
 }
 
 bool mu::isImageBlockSupported() {
-    return false;
+    //implicit imageblocks
 #if (CC_PLATFORM == CC_PLATFORM_MAC_IOS) || TARGET_CPU_ARM64
     return true;
 #else
@@ -894,14 +889,12 @@ bool mu::isImageBlockSupported() {
 #endif
 }
 
-void declareExtensions(String& prefix, const String& src, ShaderStageFlagBit shaderType) {
-    if(shaderType == ShaderStageFlagBit::FRAGMENT && src.find("GL_EXT_shader_framebuffer_fetch") != String::npos) {
-        // mac fallback to texture<access:: read_write>, except on m1 core
-        prefix.append("#define GL_EXT_shader_framebuffer_fetch\n");
-    }
-    if(shaderType == ShaderStageFlagBit::FRAGMENT && src.find("GL_EXT_shader_pixel_local_storage") != String::npos && mu::isImageBlockSupported()) {
-        prefix.append("#define GL_EXT_shader_pixel_local_storage\n");
-    }
+bool mu::isFramebufferFetchSupported() {
+#if (CC_PLATFORM == CC_PLATFORM_MAC_IOS) || TARGET_CPU_ARM64
+    return true;
+#else
+    return false;
+#endif
 }
 
 String mu::compileGLSLShader2Msl(const String &src,
@@ -910,7 +903,6 @@ String mu::compileGLSLShader2Msl(const String &src,
                                  CCMTLGPUShader *gpuShader) {
 #if CC_USE_METAL
     String shaderSource("#version 460\n");
-    declareExtensions(shaderSource, src, shaderType);
     shaderSource.append(src);
     const auto &spv = GLSL2SPIRV(shaderType, shaderSource);
     if (spv.size() == 0)
@@ -936,7 +928,12 @@ String mu::compileGLSLShader2Msl(const String &src,
 #endif
     options.emulate_subgroups = true;
     options.pad_fragment_output_components = true;
-    options.use_framebuffer_fetch_subpasses = mu::isImageBlockSupported();
+    if(isFramebufferFetchSupported()) {
+        options.use_framebuffer_fetch_subpasses = true;
+#if (CC_PLATFORM == CC_PLATFORM_MAC_OSX)
+        options.set_msl_version(2, 3, 0);
+#endif
+    }
     //options.set_msl_version(2, 3, 0);
     msl.set_msl_options(options);
 
@@ -1064,7 +1061,6 @@ String mu::compileGLSLShader2Msl(const String &src,
             output.insert(customCodingPos, "\nconstant int indexOffset" + indexStr + " [[ function_constant(" + indexStr + ") ]];\n");
             output.replace(output.find("color(" + indexStr + ")"), 8, "color(indexOffset" + indexStr + ")");
         }
-        
     }
     if (!output.size()) {
         CC_LOG_ERROR("Compile to MSL failed.");

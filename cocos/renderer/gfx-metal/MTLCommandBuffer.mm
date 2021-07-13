@@ -134,8 +134,6 @@ void CCMTLCommandBuffer::beginRenderPass(RenderPass *renderPass, Framebuffer *fb
 
     auto *ccMtlRenderPass = static_cast<CCMTLRenderPass *>(renderPass);
     auto  isOffscreen     = static_cast<CCMTLFramebuffer *>(fbo)->isOffscreen();
-    const SubpassInfoList& subpasses = renderPass->getSubpasses();
-    const TextureList &colorTextures = fbo->getColorTextures();
     
     MTLRenderPassDescriptor *mtlRenderPassDescriptor = static_cast<CCMTLRenderPass *>(renderPass)->getMTLRenderPassDescriptor();
     if (!isOffscreen) {
@@ -146,14 +144,27 @@ void CCMTLCommandBuffer::beginRenderPass(RenderPass *renderPass, Framebuffer *fb
     } else {
         const TextureList &colorTextures = fbo->getColorTextures();
         for (size_t i = 0; i < colorTextures.size(); i++) {
+            id<MTLTexture> tex = nil;
             auto *ccMtlTexture = static_cast<CCMTLTexture *>(colorTextures[i]);
-            ccMtlRenderPass->setColorAttachment(i, ccMtlTexture->getMTLTexture(), 0);
+            if(!ccMtlTexture) {
+                id<CAMetalDrawable> drawable = (id<CAMetalDrawable>)_mtlDevice->getCurrentDrawable();
+                tex = drawable.texture;
+            } else {
+                tex = ccMtlTexture->getMTLTexture();
+            }
+            ccMtlRenderPass->setColorAttachment(i, tex, 0);
         }
 
         Texture *dsTexture = fbo->getDepthStencilTexture();
         if (dsTexture) {
             auto *ccMtlTexture = static_cast<CCMTLTexture *>(dsTexture);
             ccMtlRenderPass->setDepthStencilAttachment(ccMtlTexture->getMTLTexture(), 0);
+        } else {
+            const DepthStencilAttachment& dsa = renderPass->getDepthStencilAttachment();
+            if(dsa.format != Format::UNKNOWN) {
+                id<MTLTexture>      dssTex   = (id<MTLTexture>)_mtlDevice->getDSSTexture();
+                ccMtlRenderPass->setDepthStencilAttachment(dssTex, 0);
+            }
         }
     }
     if (!isRenderingEntireDrawable(renderArea, static_cast<CCMTLRenderPass *>(renderPass))) {
@@ -294,15 +305,20 @@ void CCMTLCommandBuffer::nextSubpass() {
     if(_curRenderPass) {
         auto *ccRenderpass = static_cast<CCMTLRenderPass*>(_curRenderPass);
         ccRenderpass->nextSubpass();
-        uint curSubpassIndex = ccRenderpass->getCurrentSubpassIndex();
-        const TextureList &colorTextures = _curFBO->getColorTextures();
-        const SubpassInfoList& subpasses = _curRenderPass->getSubpasses();
-        if(!subpasses.empty()) {
-            const auto& inputs = subpasses[curSubpassIndex].inputs;
-            for (size_t i = 0; i < inputs.size(); i++) {
-                const uint input = inputs[i];
-                auto *ccMtlTexture = static_cast<CCMTLTexture *>(colorTextures[input]);
-                _renderEncoder.setFragmentTexture(ccMtlTexture->getMTLTexture(), input);
+        // with framebuffer fetch enabled we can get texture as attachments by color[n] (except mac before m1),
+        // otherwise setFragmentTexture manually.
+        bool setTexNeeded = !mu::isFramebufferFetchSupported();
+        if(setTexNeeded) {
+            uint curSubpassIndex = ccRenderpass->getCurrentSubpassIndex();
+            const TextureList &colorTextures = _curFBO->getColorTextures();
+            const SubpassInfoList& subpasses = _curRenderPass->getSubpasses();
+            if(!subpasses.empty()) {
+                const auto& inputs = subpasses[curSubpassIndex].inputs;
+                for (size_t i = 0; i < inputs.size(); i++) {
+                    const uint input = inputs[i];
+                    auto *ccMtlTexture = static_cast<CCMTLTexture *>(colorTextures[input]);
+                    _renderEncoder.setFragmentTexture(ccMtlTexture->getMTLTexture(), input);
+                }
             }
         }
     }
