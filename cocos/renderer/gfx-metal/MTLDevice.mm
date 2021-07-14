@@ -117,6 +117,7 @@ bool CCMTLDevice::doInit(const DeviceInfo &info) {
     dssDescriptor.usage = MTLTextureUsageRenderTarget;
     _dssTex = [mtlDevice newTextureWithDescriptor:dssDescriptor];
     _caps.stencilBits = 8;
+    
 
     ContextInfo ctxInfo;
     ctxInfo.windowHandle = _windowHandle;
