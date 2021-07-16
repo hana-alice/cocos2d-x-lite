@@ -415,13 +415,12 @@ CCMTLGPUPipelineState *getClearRenderPassPipelineState(CCMTLDevice *device, Rend
     if(rpIter != renderPassMap.end()) {
         renderPass = rpIter->second;
     } else {
-        gfx::ColorAttachmentList colorAttachments;
-        gfx::DepthStencilAttachment depthStencilAttachment;
-        
         const ColorAttachmentList& originAttachments = curPass->getColorAttachments();
         const SubpassInfoList& subpasses = curPass->getSubpasses();
         uint32_t curSubpassIndex = static_cast<CCMTLRenderPass*>(curPass)->getCurrentSubpassIndex();
         if(!subpasses.empty()) {
+            gfx::ColorAttachmentList colorAttachments;
+            gfx::DepthStencilAttachment depthStencilAttachment;
             for (size_t i = 0; i < subpasses[curSubpassIndex].colors.size(); i++) {
                 uint32_t color = subpasses[curSubpassIndex].colors[i];
                 colorAttachments.push_back(originAttachments[color]);
@@ -441,16 +440,18 @@ CCMTLGPUPipelineState *getClearRenderPassPipelineState(CCMTLDevice *device, Rend
                 depthStencilAttachment.format = dsa.format;
                 depthStencilAttachment.sampleCount = dsa.sampleCount;
             }
+            renderPass = device->createRenderPass({
+                colorAttachments,
+                depthStencilAttachment,
+                {},
+            });
         } else {
-            colorAttachments = originAttachments;
-            depthStencilAttachment = curPass->getDepthStencilAttachment();
+            renderPass = device->createRenderPass({
+                originAttachments,
+                curPass->getDepthStencilAttachment(),
+                {},
+            });
         }
-
-        renderPass = device->createRenderPass({
-            colorAttachments,
-            depthStencilAttachment,
-            {},
-        });
     }
     
     gfx::Attribute position = {"a_position", gfx::Format::RG32F, false, 0, false};
@@ -1777,7 +1778,7 @@ void mu::clearRenderArea(CCMTLDevice *device, id<MTLCommandBuffer> commandBuffer
 
 void mu::clearUtilResource() {
     if(!renderPassMap.empty()) {
-        for (auto pass : renderPassMap) {
+        for (auto& pass : renderPassMap) {
             //TODO: create and destroy not in the same level
             pass.second->destroy();
             CC_DELETE(pass.second);
@@ -1785,7 +1786,7 @@ void mu::clearUtilResource() {
         renderPassMap.clear();
     }
     if(!pipelineMap.empty()) {
-        for (auto pipeline : pipelineMap) {
+        for (auto& pipeline : pipelineMap) {
             pipeline.second->destroy();
             CC_DELETE(pipeline.second);
         }
